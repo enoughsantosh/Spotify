@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Spotify Playlist Explorer</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+  <meta name="theme-color" content="#1db954">
+</head>
+<body class="bg-gradient-to-br from-gray-900 to-black min-h-screen text-white touch-manipulation">
+  <div class="container mx-auto px-4 py-4 sm:py-8 max-w-4xl">
+    <div class="bg-gray-800 rounded-xl shadow-2xl p-4 sm:p-8">
+      <h1 class="text-2xl sm:text-4xl font-bold text-center mb-4 sm:mb-6 text-green-500">
+        <i class="fab fa-spotify mr-2 sm:mr-3"></i>Playlist Explorer
+      </h1>
+      
+      <div id="inputSection" class="flex flex-col sm:flex-row mb-4 sm:mb-6">
+        <input 
+          type="text" 
+          id="playlistUrl" 
+          placeholder="Paste Spotify playlist URL" 
+          class="w-full px-3 py-2 sm:px-4 sm:py-3 bg-gray-700 text-white rounded-t-lg sm:rounded-l-lg sm:rounded-r-none focus:outline-none focus:ring-2 focus:ring-green-500 mb-2 sm:mb-0"
+        >
+        <button 
+          id="fetchButton"
+          onclick="fetchPlaylistInfo()" 
+          class="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white px-4 py-2 sm:px-6 sm:py-3 sm:rounded-r-lg transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none rounded-b-lg sm:rounded-b-none"
+        >
+          <i class="fas fa-search mr-2"></i>Fetch Playlist
+        </button>
+      </div>
+
+      <div id="loading" class="hidden text-center py-8">
+        <div class="animate-spin inline-block w-12 h-12 border-4 border-green-500 border-t-transparent rounded-full"></div>
+        <p class="mt-4 text-green-300">Fetching playlist details...</p>
+      </div>
+
+      <div id="error" class="hidden bg-red-600 bg-opacity-20 border border-red-500 rounded-lg p-4 text-center"></div>
+
+      <div id="playlistInfo" class="hidden">
+        <div id="playlistHeader" class="mb-8 flex flex-col sm:flex-row items-center bg-gray-700 rounded-lg p-4"></div>
+        <div id="result" class="grid grid-cols-1 gap-4"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Get the query parameter from the URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const playlistId = urlParams.get('id');
+
+    // If playlistId exists, fetch playlist info automatically and hide input section
+    if (playlistId) {
+      document.getElementById('inputSection').classList.add('hidden');
+      fetchPlaylistInfo(playlistId);
+    }
+
+    function showLoading() {
+      document.getElementById('loading').classList.remove('hidden');
+      document.getElementById('error').classList.add('hidden');
+      document.getElementById('playlistInfo').classList.add('hidden');
+    }
+
+    function showError(message) {
+      const errorDiv = document.getElementById('error');
+      errorDiv.innerHTML = `
+        <i class="fas fa-exclamation-triangle mr-2"></i>
+        ${message}
+      `;
+      document.getElementById('loading').classList.add('hidden');
+      errorDiv.classList.remove('hidden');
+    }
+
+    function fetchPlaylistInfo(playlistId) {
+      showLoading();
+
+      // API URLs
+      const corsProxy = "https://cors.karankingrider.workers.dev/?url=";
+      const playlistApiUrl = `${corsProxy}https://sp-sigma.vercel.app/api/spotify?id=${playlistId}`;
+      const playlistDetailsUrl = `${corsProxy}https://sp-sigma.vercel.app/api/spotifyPlaylist?id=${playlistId}`;
+
+      // Fetch playlist tracks
+      fetch(playlistApiUrl, { method: "GET" })
+        .then(response => response.json())
+        .then(tracksData => {
+          // Fetch playlist details
+          return fetch(playlistDetailsUrl, { method: "GET" })
+            .then(response => response.json())
+            .then(playlistDetails => {
+              return { tracks: tracksData, details: playlistDetails };
+            });
+        })
+        .then(data => {
+          if (data.tracks.success && data.details.success) {
+            // Show playlist header
+            const playlistHeaderDiv = document.getElementById('playlistHeader');
+            playlistHeaderDiv.innerHTML = `
+              <img src="${data.details.cover}" alt="Playlist Cover" class="w-32 h-32 sm:w-24 sm:h-24 rounded-lg mr-0 sm:mr-4 mb-4 sm:mb-0 object-cover shadow-lg">
+              <div class="text-center sm:text-left">
+                <h2 class="text-xl sm:text-2xl font-bold text-green-400 mb-2">${data.details.title}</h2>
+                <p class="text-gray-400 mb-2">
+                  <i class="fas fa-music mr-2"></i>${data.tracks.trackList.length} tracks
+                </p>
+                <p class="text-gray-500 text-sm hidden sm:block">
+                  <i class="fas fa-user-friends mr-2"></i>${data.details.playlistOwner}
+                </p>
+              </div>
+            `;
+
+            // Clear previous results
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '';
+
+            // Add each song's details to the list
+            data.tracks.trackList.forEach(song => {
+              const songElement = document.createElement('div');
+              songElement.className = 'bg-gray-800 rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 ease-in-out transform hover:-translate-y-1';
+              songElement.innerHTML = `
+                <div class="flex p-3 sm:p-4">
+                  <img src="${song.cover}" alt="${song.title}" class="w-16 h-16 sm:w-24 sm:h-24 rounded-lg object-cover mr-3 sm:mr-4">
+                  <div class="flex-grow overflow-hidden">
+                    <h3 class="text-base sm:text-xl font-semibold text-green-300 truncate">${song.title}</h3>
+                    <p class="text-gray-400 truncate text-sm sm:text-base"><i class="fas fa-user mr-2"></i>${song.artists}</p>
+                    <div class="hidden sm:block">
+                      <p class="text-gray-500 text-xs sm:text-sm mt-1 truncate">
+                        <i class="fas fa-record-vinyl mr-2"></i>${song.album}
+                      </p>
+                      <p class="text-gray-500 text-xs sm:text-sm truncate">
+                        <i class="fas fa-calendar-alt mr-2"></i>${song.releaseDate || "Release Date N/A"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              `;
+              resultDiv.appendChild(songElement);
+            });
+
+            // Show playlist info
+            document.getElementById('loading').classList.add('hidden');
+            document.getElementById('playlistInfo').classList.remove('hidden');
+          } else {
+            showError("Failed to fetch playlist info. Please check the URL.");
+          }
+        })
+        .catch(error => {
+          console.error("Error fetching data:", error);
+          showError("An error occurred. Please check the URL and try again.");
+        });
+    }
+  </script>
+</body>
+</html>
