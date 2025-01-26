@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spotify Playlist Manager</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <style>
+        /* Custom scrollbar for mobile */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1f2937;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #4ade80;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-gray-900 to-black min-h-screen text-white touch-manipulation">
+    <div class="container mx-auto px-2 sm:px-4 py-4 sm:py-8 max-w-6xl">
+        <div class="bg-gray-800 rounded-xl shadow-2xl p-4 sm:p-8">
+            <div class="flex flex-col sm:flex-row justify-between items-center mb-4 sm:mb-8">
+                <h1 class="text-2xl sm:text-4xl font-bold text-green-500 mb-4 sm:mb-0 text-center w-full sm:text-left sm:w-auto">
+                    <i class="fab fa-spotify mr-2 sm:mr-3"></i>Playlist Manager
+                </h1>
+                <button 
+                    id="addPlaylistBtn"
+                    class="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none flex items-center justify-center"
+                    onclick="toggleInputBox()"
+                >
+                    <i class="fas fa-plus mr-2"></i>Add Playlist
+                </button>
+            </div>
+
+            <div id="inputBox" class="hidden bg-gray-700 rounded-lg p-4 sm:p-6 mb-4 sm:mb-8 transition-all duration-300 ease-in-out">
+                <div class="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
+                    <input 
+                        type="text" 
+                        id="playlistUrl" 
+                        placeholder="Enter Spotify Playlist URL" 
+                        class="w-full px-3 sm:px-4 py-2 sm:py-3 bg-gray-600 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                    >
+                    <button 
+                        onclick="fetchPlaylistData()"
+                        class="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none"
+                    >
+                        Add
+                    </button>
+                </div>
+            </div>
+
+            <h2 class="text-xl sm:text-2xl font-semibold mb-4 sm:mb-6 text-green-400">
+                <i class="fas fa-list-alt mr-2 sm:mr-3"></i>My Playlists
+            </h2>
+
+            <div 
+                id="playlistList" 
+                class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-6"
+            ></div>
+
+            <div 
+                id="emptyState" 
+                class="hidden text-center py-8 sm:py-16 bg-gray-700 rounded-lg"
+            >
+                <i class="fas fa-music text-4xl sm:text-6xl text-green-500 mb-4"></i>
+                <p class="text-base sm:text-xl text-gray-400">
+                    No playlists added yet. 
+                    <br>Click "Add Playlist" to get started!
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Playlist Details -->
+    <div 
+        id="playlistModal" 
+        class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden items-center justify-center p-2 sm:p-4"
+    >
+        <div class="bg-gray-800 rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div class="p-4 sm:p-6">
+                <div class="flex justify-between items-center mb-4 sm:mb-6">
+                    <h2 id="modalPlaylistTitle" class="text-xl sm:text-2xl font-bold text-green-400 truncate"></h2>
+                    <button 
+                        onclick="closeModal()"
+                        class="text-gray-400 hover:text-white"
+                    >
+                        <i class="fas fa-times text-xl sm:text-2xl"></i>
+                    </button>
+                </div>
+                <div id="modalPlaylistContent" class="flex flex-col sm:flex-row items-center"></div>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        // Toggle input box visibility
+        function toggleInputBox() {
+            const inputBox = document.getElementById('inputBox');
+            inputBox.classList.toggle('hidden');
+        }
+
+        // Fetch playlist data
+        async function fetchPlaylistData() {
+            const url = document.getElementById('playlistUrl').value;
+            if (!url) {
+                alert("Please enter a valid Spotify playlist URL.");
+                return;
+            }
+
+            const playlistId = url.split("/").pop().split("?")[0];
+            const apiUrl = `https://cors.karankingrider.workers.dev/?url=https://sp-sigma.vercel.app/api/spotifyPlaylist?id=${playlistId}`;
+
+            try {
+                const response = await fetch(apiUrl);
+                const data = await response.json();
+                if (data && data.title && data.cover) {
+                    savePlaylist(data,playlistId);
+                    document.getElementById('playlistUrl').value = '';
+                    document.getElementById('inputBox').classList.add('hidden');
+                } else {
+                    alert("Failed to fetch playlist data.");
+                }
+            } catch (error) {
+                alert("An error occurred while fetching the playlist data.");
+            }
+        }
+
+function savePlaylist(data, playlistId) {
+    let playlists = JSON.parse(localStorage.getItem('playlists')) || [];
+    
+    // Check for duplicates using playlistId or another unique field
+    const exists = playlists.some(p => p.Id === playlistId);  // Ensure `playlistId` is unique
+    if (exists) {
+        alert('This playlist is already in your collection.');
+        return;
+    }
+
+    // Assign a unique id to the playlist if none exists
+    data.Id = playlistId;
+
+    playlists.push(data);
+    localStorage.setItem('playlists', JSON.stringify(playlists));
+    loadPlaylists();
+}
+
+        // Load playlists from localStorage
+        function loadPlaylists() {
+            const playlists = JSON.parse(localStorage.getItem('playlists')) || [];
+            const playlistList = document.getElementById('playlistList');
+            const emptyState = document.getElementById('emptyState');
+
+            playlistList.innerHTML = '';
+
+            if (playlists.length === 0) {
+                emptyState.classList.remove('hidden');
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+
+            playlists.forEach((playlist, index) => {
+                const playlistCard = document.createElement('div');
+                playlistCard.className = `
+                    bg-gray-700 rounded-lg overflow-hidden shadow-md 
+                    hover:shadow-xl transition-all duration-300 
+                    ease-in-out transform hover:-translate-y-2 
+                    cursor-pointer
+                `;
+                playlistCard.innerHTML = `
+    <div class="relative">
+        <a href="down.html?id=${playlist.Id}">
+            <img 
+                src="${playlist.cover}" 
+                alt="Playlist Cover" 
+                class="w-full h-48 object-cover"
+            >
+        </a>
+    
+                        <button 
+                            onclick="deletePlaylist(${index})" 
+                            class="absolute top-2 right-2 bg-red-500 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-red-600 transition"
+                        >
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="text-lg font-semibold text-green-300 truncate">${playlist.title}</h3>
+                    </div>
+                `;
+                playlistList.appendChild(playlistCard);
+            });
+        }
+
+
+
+        // Delete playlist
+        function deletePlaylist(index) {
+            let playlists = JSON.parse(localStorage.getItem('playlists')) || [];
+            playlists.splice(index, 1);
+            localStorage.setItem('playlists', JSON.stringify(playlists));
+            loadPlaylists();
+        }
+
+        // Close modal
+        function closeModal() {
+            const modal = document.getElementById('playlistModal');
+            modal.classList.remove('flex');
+            modal.classList.add('hidden');
+        }
+
+        // Load playlists on page load
+        window.onload = loadPlaylists;
+    </script>
+</body>
+</html>
