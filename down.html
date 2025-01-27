@@ -8,7 +8,7 @@
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
   <meta name="theme-color" content="#1db954">
 </head>
-<body class="bg-gradient-to-br from-gray-900 to-black min-h-screen text-white touch-manipulation">
+<body class="bg-gradient-to-br from-gray-900 to-black min-h-screen text-white touch-manipulation pb-24">
   <div class="container mx-auto px-4 py-4 sm:py-8 max-w-4xl">
     <div class="bg-gray-800 rounded-xl shadow-2xl p-4 sm:p-8">
       <h1 class="text-2xl sm:text-4xl font-bold text-center mb-4 sm:mb-6 text-green-500">
@@ -45,15 +45,113 @@
     </div>
   </div>
 
+  <!-- Audio Player -->
+  <div id="audioPlayer" class="fixed bottom-0 left-0 right-0 bg-gray-900 transform translate-y-full transition-transform duration-300 ease-in-out shadow-lg">
+    <div class="container mx-auto max-w-4xl">
+      <div class="flex items-center p-4 space-x-4">
+        <div class="relative">
+          <img id="playerCover" src="" alt="Cover" class="w-16 h-16 rounded-lg object-cover">
+          <div id="loadingOverlay" class="absolute inset-0 bg-black bg-opacity-50 rounded-lg hidden items-center justify-center">
+            <div class="animate-spin w-8 h-8 border-4 border-green-500 border-t-transparent rounded-full"></div>
+          </div>
+        </div>
+        <div class="flex-grow min-w-0">
+          <h3 id="playerTitle" class="text-green-400 font-semibold text-sm sm:text-base truncate"></h3>
+          <p id="playerArtist" class="text-gray-400 text-xs sm:text-sm truncate"></p>
+        </div>
+        <div class="flex items-center space-x-3">
+          <button id="playPauseBtn" class="p-2 hover:bg-gray-800 rounded-full transition-colors">
+            <i class="fas fa-play text-green-500 hover:text-green-400"></i>
+          </button>
+          <a id="downloadBtn" href="#" download class="p-2 hover:bg-gray-800 rounded-full transition-colors">
+            <i class="fas fa-download text-green-500 hover:text-green-400"></i>
+          </a>
+          <button id="closePlayer" class="p-2 hover:bg-gray-800 rounded-full transition-colors">
+            <i class="fas fa-times text-gray-400 hover:text-white"></i>
+          </button>
+        </div>
+      </div>
+      <div class="px-4 pb-4">
+        <div class="flex items-center space-x-2">
+          <span id="currentTime" class="text-xs text-gray-400">0:00</span>
+          <div class="flex-grow bg-gray-700 h-1 rounded-full">
+            <div id="progressBar" class="bg-green-500 h-1 rounded-full w-0"></div>
+          </div>
+          <span id="duration" class="text-xs text-gray-400">0:00</span>
+        </div>
+        <audio id="audioElement"></audio>
+      </div>
+    </div>
+  </div>
+
   <script>
+    // Global variables for playlist functionality
+    let currentPlaylistTracks = [];
+    let currentTrackIndex = -1;
+
     // Get the query parameter from the URL
     const urlParams = new URLSearchParams(window.location.search);
     const playlistId = urlParams.get('id');
+
+    // Audio player elements
+    const audioPlayer = document.getElementById('audioPlayer');
+    const audioElement = document.getElementById('audioElement');
+    const playerCover = document.getElementById('playerCover');
+    const playerTitle = document.getElementById('playerTitle');
+    const playerArtist = document.getElementById('playerArtist');
+    const progressBar = document.getElementById('progressBar');
+    const currentTime = document.getElementById('currentTime');
+    const duration = document.getElementById('duration');
+    const closePlayer = document.getElementById('closePlayer');
+    const playPauseBtn = document.getElementById('playPauseBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const loadingOverlay = document.getElementById('loadingOverlay');
 
     // If playlistId exists, fetch playlist info automatically and hide input section
     if (playlistId) {
       document.getElementById('inputSection').classList.add('hidden');
       fetchPlaylistInfo(playlistId);
+    }
+
+    // Play/Pause button click handler
+    playPauseBtn.addEventListener('click', () => {
+      if (audioElement.paused) {
+        audioElement.play();
+      } else {
+        audioElement.pause();
+      }
+    });
+
+    // Audio element event listeners
+    audioElement.addEventListener('play', () => {
+      playPauseBtn.innerHTML = '<i class="fas fa-pause text-green-500 hover:text-green-400"></i>';
+    });
+
+    audioElement.addEventListener('pause', () => {
+      playPauseBtn.innerHTML = '<i class="fas fa-play text-green-500 hover:text-green-400"></i>';
+    });
+
+    audioElement.addEventListener('loadstart', () => {
+      loadingOverlay.classList.remove('hidden');
+      loadingOverlay.classList.add('flex');
+    });
+
+    audioElement.addEventListener('canplay', () => {
+      loadingOverlay.classList.add('hidden');
+      loadingOverlay.classList.remove('flex');
+    });
+
+    // Handle track ending
+    audioElement.addEventListener('ended', () => {
+      playNextTrack();
+    });
+
+    function playNextTrack() {
+      if (currentTrackIndex < currentPlaylistTracks.length - 1) {
+        currentTrackIndex++;
+        const nextTrack = currentPlaylistTracks[currentTrackIndex];
+        playSong(nextTrack.id, nextTrack.title, nextTrack.artists, nextTrack.cover);
+      }
     }
 
     function showLoading() {
@@ -70,6 +168,44 @@
       `;
       document.getElementById('loading').classList.add('hidden');
       errorDiv.classList.remove('hidden');
+    }
+
+    function formatTime(seconds) {
+      const minutes = Math.floor(seconds / 60);
+      const remainingSeconds = Math.floor(seconds % 60);
+      return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+    }
+
+    function updateProgressBar() {
+      const progress = (audioElement.currentTime / audioElement.duration) * 100;
+      progressBar.style.width = `${progress}%`;
+      currentTime.textContent = formatTime(audioElement.currentTime);
+    }
+
+    audioElement.addEventListener('timeupdate', updateProgressBar);
+    audioElement.addEventListener('loadedmetadata', () => {
+      duration.textContent = formatTime(audioElement.duration);
+    });
+
+    closePlayer.addEventListener('click', () => {
+      audioElement.pause();
+      audioPlayer.style.transform = 'translateY(100%)';
+    });
+
+    function playSong(preview_url, title, artist, cover) {
+      if (!preview_url) {
+        showError("Preview not available for this track");
+        return;
+      }
+
+      const trackUrl = "https://yank.g3v.co.uk/track/" + preview_url;
+      audioElement.src = trackUrl;
+      downloadBtn.href = trackUrl;
+      playerTitle.textContent = title;
+      playerArtist.textContent = artist;
+      playerCover.src = cover;
+      audioPlayer.style.transform = 'translateY(0)';
+      audioElement.play();
     }
 
     function fetchPlaylistInfo(playlistId) {
@@ -93,6 +229,9 @@
         })
         .then(data => {
           if (data.tracks.success && data.details.success) {
+            // Store playlist tracks globally
+            currentPlaylistTracks = data.tracks.trackList;
+            
             // Show playlist header
             const playlistHeaderDiv = document.getElementById('playlistHeader');
             playlistHeaderDiv.innerHTML = `
@@ -113,9 +252,9 @@
             resultDiv.innerHTML = '';
 
             // Add each song's details to the list
-            data.tracks.trackList.forEach(song => {
+            data.tracks.trackList.forEach((song, index) => {
               const songElement = document.createElement('div');
-              songElement.className = 'bg-gray-800 rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 ease-in-out transform hover:-translate-y-1';
+              songElement.className = 'bg-gray-800 rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 ease-in-out transform hover:-translate-y-1 cursor-pointer';
               songElement.innerHTML = `
                 <div class="flex p-3 sm:p-4">
                   <img src="${song.cover}" alt="${song.title}" class="w-16 h-16 sm:w-24 sm:h-24 rounded-lg object-cover mr-3 sm:mr-4">
@@ -133,6 +272,10 @@
                   </div>
                 </div>
               `;
+              songElement.addEventListener('click', () => {
+                currentTrackIndex = index;
+                playSong(song.id, song.title, song.artists, song.cover);
+              });
               resultDiv.appendChild(songElement);
             });
 
