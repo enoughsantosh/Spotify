@@ -408,6 +408,8 @@ async function playSong(preview_url, title, artist, cover) {
     await audioElement.play();
     loadingOverlay.classList.add('hidden');
       loadingOverlay.classList.remove('flex');
+      updateNotification(title, artist, cover);
+      
   } catch (error) {
     // Handle errors
     showError("Failed to load the track. Skipping to the next song...");
@@ -498,6 +500,39 @@ async function playSong(preview_url, title, artist, cover) {
           showError("An error occurred. Please check the URL and try again.");
         });
     }
+    
+    //notif
+    function updateNotification(title, artist, cover) {
+  // Check if the browser supports the Media Session API
+  if ('mediaSession' in navigator) {
+    // Set the metadata
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: title,
+      artist: artist,
+      artwork: [
+        { src: cover, sizes: '96x96', type: 'image/png' }, // small image
+        { src: cover, sizes: '128x128', type: 'image/png' }, // medium image
+        { src: cover, sizes: '192x192', type: 'image/png' }, // large image
+      ]
+    });
+
+    // Set up the playback controls in the notification
+    navigator.mediaSession.setActionHandler('play', () => {
+      audioElement.play();
+    });
+    navigator.mediaSession.setActionHandler('pause', () => {
+      audioElement.pause();
+    });
+    navigator.mediaSession.setActionHandler('nexttrack', () => {
+      playNextTrack(); // Replace with your next track function
+    });
+    navigator.mediaSession.setActionHandler('previoustrack', () => {
+      playPreviousTrack(); // Replace with your previous track function
+    });
+  }
+}
+
+
   </script>
 </body>
 </html>
