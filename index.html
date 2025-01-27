@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Spotify Playlist Manager</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.0.0/dist/umd/supabase.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
     <style>
-        /* Custom scrollbar for mobile */
         ::-webkit-scrollbar {
             width: 6px;
         }
@@ -97,73 +97,134 @@
     </div>
 
 
-    <script>
-        // Toggle input box visibility
-        function toggleInputBox() {
-            const inputBox = document.getElementById('inputBox');
-            inputBox.classList.toggle('hidden');
+
+
+<script>
+    // Initialize Supabase client immediately
+    const supabaseClient = (() => {
+        const SUPABASE_URL = 'https://lfamfghbwhuvuizchcao.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxmYW1mZ2hid2h1dnVpemNoY2FvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzc5NjM3NTksImV4cCI6MjA1MzUzOTc1OX0.PQsopnynPI9hOpMHZ_8ceTOfP4r8DhvN_WB0ejWfau0';
+        
+        try {
+            return supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        } catch (error) {
+            console.error('Failed to initialize Supabase client:', error);
+            return null;
+        }
+    })();
+
+    // Add error handling for Supabase initialization
+    if (!supabaseClient) {
+        alert('Failed to initialize database connection. Please refresh the page.');
+    }
+
+    function toggleInputBox() {
+        const inputBox = document.getElementById('inputBox');
+        inputBox.classList.toggle('hidden');
+    }
+
+    async function fetchPlaylistData() {
+        if (!supabaseClient) {
+            alert('Database connection not available. Please refresh the page.');
+            return;
         }
 
-        // Fetch playlist data
-        async function fetchPlaylistData() {
-            const url = document.getElementById('playlistUrl').value;
-            if (!url) {
-                alert("Please enter a valid Spotify playlist URL.");
+        const url = document.getElementById('playlistUrl').value;
+        if (!url) {
+            alert("Please enter a valid Spotify playlist URL.");
+            return;
+        }
+
+        const playlistId = url.split("/").pop().split("?")[0];
+        const apiUrl = `https://cors.karankingrider.workers.dev/?url=https://sp-sigma.vercel.app/api/spotifyPlaylist?id=${playlistId}`;
+
+        try {
+            const response = await fetch(apiUrl);
+            const data = await response.json();
+            if (data && data.title && data.cover) {
+                await savePlaylist(data, playlistId);
+                document.getElementById('playlistUrl').value = '';
+                document.getElementById('inputBox').classList.add('hidden');
+            } else {
+                alert("Failed to fetch playlist data.");
+            }
+        } catch (error) {
+            console.error('Error fetching playlist:', error);
+            alert("An error occurred while fetching the playlist data.");
+        }
+    }
+
+    async function savePlaylist(data, playlistId) {
+        if (!supabaseClient) {
+            alert('Database connection not available. Please refresh the page.');
+            return;
+        }
+
+        try {
+            const { data: existingPlaylist, error: checkError } = await supabaseClient
+                .from('playlists')
+                .select('*')
+                .eq('id', playlistId)
+                .single();
+
+            if (checkError && checkError.code !== 'PGRST116') {
+                console.error('Error checking playlist:', checkError);
+                alert("An error occurred while checking the playlist.");
                 return;
             }
 
-            const playlistId = url.split("/").pop().split("?")[0];
-            const apiUrl = `https://cors.karankingrider.workers.dev/?url=https://sp-sigma.vercel.app/api/spotifyPlaylist?id=${playlistId}`;
-
-            try {
-                const response = await fetch(apiUrl);
-                const data = await response.json();
-                if (data && data.title && data.cover) {
-                    savePlaylist(data,playlistId);
-                    document.getElementById('playlistUrl').value = '';
-                    document.getElementById('inputBox').classList.add('hidden');
-                } else {
-                    alert("Failed to fetch playlist data.");
-                }
-            } catch (error) {
-                alert("An error occurred while fetching the playlist data.");
+            if (existingPlaylist) {
+                alert('This playlist is already in your collection.');
+                return;
             }
-        }
 
-function savePlaylist(data, playlistId) {
-    let playlists = JSON.parse(localStorage.getItem('playlists')) || [];
-    
-    // Check for duplicates using playlistId or another unique field
-    const exists = playlists.some(p => p.Id === playlistId);  // Ensure `playlistId` is unique
-    if (exists) {
-        alert('This playlist is already in your collection.');
-        return;
+            const { error: insertError } = await supabaseClient
+                .from('playlists')
+                .insert([{ id: playlistId, title: data.title, cover: data.cover }]);
+
+            if (insertError) {
+                console.error('Error inserting playlist:', insertError);
+                alert("An error occurred while saving the playlist.");
+                return;
+            }
+
+            loadPlaylists();
+        } catch (error) {
+            console.error('Error saving playlist:', error);
+            alert("An error occurred while saving the playlist.");
+        }
     }
 
-    // Assign a unique id to the playlist if none exists
-    data.Id = playlistId;
+    async function loadPlaylists() {
+        if (!supabaseClient) {
+            alert('Database connection not available. Please refresh the page.');
+            return;
+        }
 
-    playlists.push(data);
-    localStorage.setItem('playlists', JSON.stringify(playlists));
-    loadPlaylists();
-}
+        try {
+            const { data: playlists, error } = await supabaseClient
+                .from('playlists')
+                .select('*');
 
-        // Load playlists from localStorage
-        function loadPlaylists() {
-            const playlists = JSON.parse(localStorage.getItem('playlists')) || [];
+            if (error) {
+                console.error('Error loading playlists:', error);
+                alert("An error occurred while loading playlists.");
+                return;
+            }
+
             const playlistList = document.getElementById('playlistList');
             const emptyState = document.getElementById('emptyState');
 
             playlistList.innerHTML = '';
 
-            if (playlists.length === 0) {
+            if (!playlists || playlists.length === 0) {
                 emptyState.classList.remove('hidden');
                 return;
             }
 
             emptyState.classList.add('hidden');
 
-            playlists.forEach((playlist, index) => {
+            playlists.forEach((playlist) => {
                 const playlistCard = document.createElement('div');
                 playlistCard.className = `
                     bg-gray-700 rounded-lg overflow-hidden shadow-md 
@@ -172,17 +233,17 @@ function savePlaylist(data, playlistId) {
                     cursor-pointer
                 `;
                 playlistCard.innerHTML = `
-    <div class="relative">
-        <a href="down.html?id=${playlist.Id}">
-            <img 
-                src="${playlist.cover}" 
-                alt="Playlist Cover" 
-                class="w-full h-48 object-cover"
-            >
-        </a>
-    
+                    <div class="relative">
+                        <a href="down.html?id=${playlist.id}">
+                            <img 
+                                src="${playlist.cover}" 
+                                alt="Playlist Cover" 
+                                class="w-full h-48 object-cover"
+                            >
+                        </a>
+
                         <button 
-                            onclick="deletePlaylist(${index})" 
+                            onclick="deletePlaylist('${playlist.id}')" 
                             class="absolute top-2 right-2 bg-red-500 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-red-600 transition"
                         >
                             <i class="fas fa-trash"></i>
@@ -194,27 +255,49 @@ function savePlaylist(data, playlistId) {
                 `;
                 playlistList.appendChild(playlistCard);
             });
+        } catch (error) {
+            console.error('Error loading playlists:', error);
+            alert("An error occurred while loading playlists.");
+        }
+    }
+
+    async function deletePlaylist(id) {
+        if (!supabaseClient) {
+            alert('Database connection not available. Please refresh the page.');
+            return;
         }
 
+        try {
+            const { error } = await supabaseClient
+                .from('playlists')
+                .delete()
+                .eq('id', id);
 
+            if (error) {
+                console.error('Error deleting playlist:', error);
+                alert("Failed to delete playlist");
+                return;
+            }
 
-        // Delete playlist
-        function deletePlaylist(index) {
-            let playlists = JSON.parse(localStorage.getItem('playlists')) || [];
-            playlists.splice(index, 1);
-            localStorage.setItem('playlists', JSON.stringify(playlists));
+            loadPlaylists();
+        } catch (error) {
+            console.error('Error deleting playlist:', error);
+            alert("An error occurred while deleting the playlist.");
+        }
+    }
+
+    function closeModal() {
+        const modal = document.getElementById('playlistModal');
+        modal.classList.remove('flex');
+        modal.classList.add('hidden');
+    }
+
+    // Initialize app only after DOM is fully loaded
+    document.addEventListener('DOMContentLoaded', () => {
+        if (supabaseClient) {
             loadPlaylists();
         }
-
-        // Close modal
-        function closeModal() {
-            const modal = document.getElementById('playlistModal');
-            modal.classList.remove('flex');
-            modal.classList.add('hidden');
-        }
-
-        // Load playlists on page load
-        window.onload = loadPlaylists;
+    });
     </script>
 </body>
 </html>
