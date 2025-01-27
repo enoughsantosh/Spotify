@@ -246,14 +246,16 @@ previewBtn.addEventListener("click", () => {
 // Next functionality (Next)
 nextBtn.addEventListener("click", () => {
   if (currentTrackIndex < currentPlaylistTracks.length - 1) {
+    // Move to the next track
     currentTrackIndex++;
-    const nextTrack = currentPlaylistTracks[currentTrackIndex];
-    playSong(nextTrack.id, nextTrack.title, nextTrack.artists, nextTrack.cover);
   } else {
-    console.log("No next track available");
+    // Reset to the first track
+    currentTrackIndex = 0;
   }
-});
 
+  const nextTrack = currentPlaylistTracks[currentTrackIndex];
+  playSong(nextTrack.id, nextTrack.title, nextTrack.artists, nextTrack.cover);
+});
 
 
 // Loop button functionality
