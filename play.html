@@ -1,533 +1,402 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Spotify Playlist Explorer</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
-  <meta name="theme-color" content="#1db954">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spotify Playlist Manager</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.0.0/dist/umd/supabase.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <style>
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1f2937;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #4ade80;
+            border-radius: 3px;
+        }
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 52px;
+            height: 28px;
+        }
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 28px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider {
+            background-color: #4ade80;
+        }
+        input:checked + .slider:before {
+            transform: translateX(24px);
+        }
+        @media (max-width: 640px) {
+            .button-group {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 0.5rem;
+            }
+            .mode-switch {
+                grid-column: span 2;
+                justify-content: center;
+            }
+        }
+    </style>
 </head>
-<body class="bg-gradient-to-br from-gray-900 to-black min-h-screen text-white touch-manipulation pb-24">
-  <div class="container mx-auto px-4 py-4 sm:py-8 max-w-4xl">
-    <!-- Back Button -->
-    <button onclick="history.back()" class="mb-4 text-green-500 hover:text-green-400 transition-colors">
-      <i class="fas fa-arrow-left mr-2"></i>Back
-    </button>
-
-    <div class="bg-gray-800 rounded-xl shadow-2xl p-4 sm:p-8">
-      <h1 class="text-2xl sm:text-4xl font-bold text-center mb-4 sm:mb-6 text-green-500">
-        <i class="fab fa-spotify mr-2 sm:mr-3"></i>Playlist Explorer
-      </h1>
-
-      <div id="loading" class="hidden text-center py-8">
-        <div class="animate-spin inline-block w-12 h-12 border-4 border-green-500 border-t-transparent rounded-full"></div>
-        <p class="mt-4 text-green-300">Fetching playlist details...</p>
-      </div>
-
-      <div id="error" class="hidden bg-red-600 bg-opacity-20 border border-red-500 rounded-lg p-4 text-center"></div>
-
-      <div id="playlistInfo" class="hidden">
-        <div id="playlistHeader" class="mb-8 flex flex-col sm:flex-row items-center bg-gray-700 rounded-lg p-4">
-          <!-- Playlist header content -->
-        </div>
-        
-        <!-- Playlist Controls -->
-        <div class="flex justify-between items-center mb-4">
-          <button id="playAllButton" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-full transition-colors">
-            <i class="fas fa-play mr-2"></i>Play All
-          </button>
-          <button id="downloadPlaylist" class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-full transition-colors">
-            <i class="fas fa-download mr-2"></i>Download Playlist
-          </button>
-        </div>
-        
-        <div id="result" class="grid grid-cols-1 gap-4"></div>
-      </div>
-    </div>
-  </div>
-<!-- Audio Player -->
-<div id="audioPlayer" class="fixed bottom-0 left-0 right-0 bg-gray-900 transform translate-y-full transition-transform duration-300 ease-in-out shadow-lg">
-  <div class="container mx-auto max-w-4xl">
-    <!-- Mobile Expand Button -->
-    <div id="expandToggle" class="absolute -top-4 right-4 bg-gray-800 p-2 rounded-full cursor-pointer sm:hidden">
-      <i class="fas fa-chevron-up text-gray-400"></i>
-    </div>
-    <!-- Player Content -->
-    <div class="flex items-center p-4 space-x-4">
-      <!-- Player Cover -->
-      <div id="playerCoverContainer" class="relative flex">
-        <img id="playerCover" src="" alt="Cover" class="w-16 h-16 rounded-lg object-cover">
-        <div id="loadingOverlay" class="absolute inset-0 bg-black bg-opacity-50 rounded-lg hidden items-center justify-center">
-          <div class="animate-spin w-8 h-8 border-4 border-green-500 border-t-transparent rounded-full"></div>
-        </div>
-      </div>
-      <!-- Player Title and Artist -->
-      <div id="playerInfo" class="flex-grow min-w-0">
-        <h3 id="playerTitle" class="text-green-400 font-semibold text-sm sm:text-base truncate"></h3>
-        <p id="playerArtist" class="text-gray-400 text-xs sm:text-sm truncate"></p>
-      </div>
-      <!-- Controls -->
-      <div class="flex items-center space-x-3">
-        <button id="previewBtn" class="">
-          <i class="fas fa-step-backward text-green-500 "></i>
-        </button>
-        <button id="playPauseBtn" class="p-2 hover:bg-gray-800 rounded-full transition-colors">
-          <i class="fas fa-play text-green-500 "></i>
-        </button>
-        <button id="nextBtn" class="">
-          <i class="fas fa-step-forward text-green-500 "></i>
-        </button>
-        <!-- Extra Buttons (Hidden in Normal View, Visible in Expanded View) -->
-        <div id="extraControls" class="hidden sm:flex items-center space-x-3">
-          <button id="loopBtn" class="">
-            <i class="fas fa-redo text-gray-400 "></i>
-          </button>
-          <a id="downloadBtn" href="#" download class="">
-            <i class="fas fa-download text-green-500 "></i>
-          </a>
-        </div>
-        <button id="closePlayer" class="hidden p-2 hover:bg-gray-800 rounded-full transition-colors">
-          <i class="fas fa-times text-gray-400 hover:text-white"></i>
-        </button>
-      </div>
-    </div>
-<!-- Progress Bar -->
-<div class="px-4 pb-4">
-  <div class="flex items-center space-x-2">
-    <span id="currentTime" class="text-xs text-gray-400">0:00</span>
-    <div 
-      id="progressContainer" 
-      class="flex-grow bg-gray-700 h-1 rounded-full relative cursor-pointer"
-      style="position: relative;"
-    >
-      <div id="progressBar" class="bg-green-500 h-1 rounded-full w-0"></div>
-    </div>
-    <span id="duration" class="text-xs text-gray-400">0:00</span>
-  </div>
-
-      <audio id="audioElement"></audio>
-    </div>
-  </div>
-</div>
-
-<!-- Styles -->
-<style>
-  #audioPlayer {
-    max-width: 100%;
-    padding: 1rem;
-  }
-
-  /* Mobile-specific styles */
-  @media (max-width: 640px) {
-    
-    #extraControls {
-      display: none;
-    }
-
-    #expandToggle {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .space-x-3 {
-      gap: 0.5rem;
-    }
-
-    #playerCover {
-      width: 3rem;
-      height: 3rem;
-    }
-
-    .text-xs {
-      font-size: 0.75rem;
-    }
-
-    .text-sm {
-      font-size: 0.875rem;
-    }
-  }
-
-  /* Expanded Mobile View */
-  
-  .expanded #extraControls {
-    display: flex !important;
-  }
-
-  .expanded #expandToggle i {
-    transform: rotate(180deg);
-  }
-  .expanded #playerInfo {
-      display: none;
-  }
-    .expanded #closePlayer {
-      display: flex;
-  }
-</style>
-
-
-  <script>
-    // Global variables for playlist functionality
-    let currentPlaylistTracks = [];
-    let currentTrackIndex = -1;
-
-    // Get the query parameter from the URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const playlistId = urlParams.get('id');
-
-    // Audio player elements
-    const audioPlayer = document.getElementById('audioPlayer');
-    const audioElement = document.getElementById('audioElement');
-    const playerCover = document.getElementById('playerCover');
-    const playerTitle = document.getElementById('playerTitle');
-    const playerArtist = document.getElementById('playerArtist');
-    const progressBar = document.getElementById('progressBar');
-    const currentTime = document.getElementById('currentTime');
-    const duration = document.getElementById('duration');
-    const progressContainer = document.getElementById('progressContainer');
-    const closePlayer = document.getElementById('closePlayer');
-    const playPauseBtn = document.getElementById('playPauseBtn');
-    const downloadBtn = document.getElementById('downloadBtn');
-    const loadingOverlay = document.getElementById('loadingOverlay');
-    const audio = document.getElementById("audioElement");
-const loopBtn = document.getElementById("loopBtn");
-
-const previewBtn = document.getElementById("previewBtn");
-const nextBtn = document.getElementById("nextBtn");
-const expandToggle = document.getElementById("expandToggle");
-
-
-expandToggle.addEventListener("click", () => {
-  audioPlayer.classList.toggle("expanded");
-      audioPlayer.classList.toggle("translate-y-full");
-
-  // Update the expand/collapse icon
-  const icon = expandToggle.querySelector("i");
-  if (audioPlayer.classList.contains("expanded")) {
-    icon.classList.replace("fa-chevron-up", "fa-chevron-down");
-  } else {
-    icon.classList.replace("fa-chevron-down", "fa-chevron-up");
-  }
-});
-
-let isLooping = false;
-
-// Toggle loop functionality
-// Previous functionality (Preview)
-previewBtn.addEventListener("click", () => {
-  if (currentTrackIndex > 0) {
-    currentTrackIndex--;
-    const prevTrack = currentPlaylistTracks[currentTrackIndex];
-    playSong(prevTrack.id, prevTrack.title, prevTrack.artists, prevTrack.cover);
-  } else {
-    console.log("No previous track available");
-  }
-});
-
-// Add event listener for Play All button
-    document.getElementById('playAllButton').addEventListener('click', () => {
-      if (currentPlaylistTracks.length > 0) {
-        currentTrackIndex = 0;
-        const firstTrack = currentPlaylistTracks[0];
-        playSong(firstTrack.id, firstTrack.title, firstTrack.artists, firstTrack.cover);
-      }
-    });
-
-// Add event listener for Download Playlist button
-    document.getElementById('downloadPlaylist').addEventListener('click', () => {
-      const playlistId = new URLSearchParams(window.location.search).get('id');
-      if (playlistId) {
-        const downloadUrl = `https://yank.g3v.co.uk/playlist/${playlistId}`;
-        window.open(downloadUrl, '_blank');
-      }
-    });
-
-// Next functionality (Next)
-nextBtn.addEventListener("click", () => {
-  if (currentTrackIndex < currentPlaylistTracks.length - 1) {
-    // Move to the next track
-    currentTrackIndex++;
-  } else {
-    // Reset to the first track
-    currentTrackIndex = 0;
-  }
-
-  const nextTrack = currentPlaylistTracks[currentTrackIndex];
-  playSong(nextTrack.id, nextTrack.title, nextTrack.artists, nextTrack.cover);
-});
-
-
-
-// Loop button functionality
-loopBtn.addEventListener("click", () => {
-  isLooping = !isLooping;
-  audioElement.loop = isLooping;
-  loopBtn.querySelector("i").classList.toggle("text-green-400", isLooping);
-});
-
-
-
-
-    // If playlistId exists, fetch playlist info automatically and hide input section
-    if (playlistId) {
-      
-      fetchPlaylistInfo(playlistId);
-    }
-
-    // Play/Pause button click handler
-    playPauseBtn.addEventListener('click', () => {
-      if (audioElement.paused) {
-        audioElement.play();
-      } else {
-        audioElement.pause();
-      }
-    });
-
-    // Audio element event listeners
-    audioElement.addEventListener('play', () => {
-      playPauseBtn.innerHTML = '<i class="fas fa-pause text-green-500 hover:text-green-400"></i>';
-    });
-
-    audioElement.addEventListener('pause', () => {
-      playPauseBtn.innerHTML = '<i class="fas fa-play text-green-500 hover:text-green-400"></i>';
-    });
-
-    audioElement.addEventListener('loadstart', () => {
-      loadingOverlay.classList.remove('hidden');
-      loadingOverlay.classList.add('flex');
-    });
-
-    audioElement.addEventListener('canplay', () => {
-      loadingOverlay.classList.add('hidden');
-      loadingOverlay.classList.remove('flex');
-    });
-
-    // Handle track ending
-    audioElement.addEventListener('ended', () => {
-      playNextTrack();
-    });
-
-    function playNextTrack() {
-      if (currentTrackIndex < currentPlaylistTracks.length - 1) {
-        currentTrackIndex++;
-        const nextTrack = currentPlaylistTracks[currentTrackIndex];
-        playSong(nextTrack.id, nextTrack.title, nextTrack.artists, nextTrack.cover);
-      }
-    }
-
-    function showLoading() {
-      document.getElementById('loading').classList.remove('hidden');
-      document.getElementById('error').classList.add('hidden');
-      document.getElementById('playlistInfo').classList.add('hidden');
-    }
-
-    function showError(message) {
-  const errorDiv = document.getElementById('error');
-  errorDiv.innerHTML = `
-    <i class="fas fa-exclamation-triangle mr-2"></i>
-    ${message}
-  `;
-  document.getElementById('loading').classList.add('hidden');
-  errorDiv.classList.remove('hidden');
-
-  // Hide the error message after 2 seconds
-  setTimeout(() => {
-    errorDiv.classList.add('hidden');
-  }, 3000);
-}
-
-    function formatTime(seconds) {
-      const minutes = Math.floor(seconds / 60);
-      const remainingSeconds = Math.floor(seconds % 60);
-      return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
-    }
-
-    function updateProgressBar() {
-      const progress = (audioElement.currentTime / audioElement.duration) * 100;
-      progressBar.style.width = `${progress}%`;
-      currentTime.textContent = formatTime(audioElement.currentTime);
-    }
-
-    audioElement.addEventListener('timeupdate', updateProgressBar);
-    audioElement.addEventListener('loadedmetadata', () => {
-      duration.textContent = formatTime(audioElement.duration);
-    });
-
-    //seek function// Seek audio based on where the user clicks on the progress bar
-function seekAudio(event) {
-  const containerWidth = progressContainer.offsetWidth; // Total width of the container
-  const offsetX = event.offsetX; // X coordinate of the click relative to the container
-  const seekTime = (offsetX / containerWidth) * audioElement.duration; // Calculate new time
-  audioElement.currentTime = seekTime; // Set the audio's current time
-}
-// Seek when the user interacts with the progress bar
-progressContainer.addEventListener('click', seekAudio);
-
-    closePlayer.addEventListener('click', () => {
-      audioElement.pause();
-      audioPlayer.style.transform = 'translateY(100%)';
-    });
-
-async function playSong(preview_url, title, artist, cover) {
-  if (!preview_url) {
-    showError("Preview not available for this track");
-    return;
-  }
-
-  try {
-    // Show loading message (optional)
-      loadingOverlay.classList.remove('hidden');
-      loadingOverlay.classList.add('flex');
-
-    // Fetch the audio file as a Blob
-    audioPlayer.style.transform = 'translateY(0)';
-        // Update player UI
-    playerTitle.textContent = title;
-    playerArtist.textContent = artist;
-    playerCover.src = cover;
-
-
-
-    const trackUrl = "https://yank.g3v.co.uk/track/" + preview_url;
-
-
-    audioElement.src = trackUrl;
-    downloadBtn.href = trackUrl;
-    downloadBtn.download = `${title}.mp3`; // Optional: Set a default download filename
-
-
-    
-
-    // Play the audio
-    await audioElement.play();
-    loadingOverlay.classList.add('hidden');
-      loadingOverlay.classList.remove('flex');
-      updateNotification(title, artist, cover);
-      
-  } catch (error) {
-    // Handle errors
-    showError("Failed to load the track. Skipping to the next song...");
-    playNextTrack();
-  }
-}
-
-    function fetchPlaylistInfo(playlistId) {
-      showLoading();
-
-      // API URLs
-      const corsProxy = "https://cors.karankingrider.workers.dev/?url=";
-      const playlistApiUrl = `${corsProxy}https://sp-sigma.vercel.app/api/spotify?id=${playlistId}`;
-      const playlistDetailsUrl = `${corsProxy}https://sp-sigma.vercel.app/api/spotifyPlaylist?id=${playlistId}`;
-
-      // Fetch playlist tracks
-      fetch(playlistApiUrl, { method: "GET" })
-        .then(response => response.json())
-        .then(tracksData => {
-          // Fetch playlist details
-          return fetch(playlistDetailsUrl, { method: "GET" })
-            .then(response => response.json())
-            .then(playlistDetails => {
-              return { tracks: tracksData, details: playlistDetails };
-            });
-        })
-        .then(data => {
-          if (data.tracks.success && data.details.success) {
-            // Store playlist tracks globally
-            currentPlaylistTracks = data.tracks.trackList;
-            
-            // Show playlist header
-            const playlistHeaderDiv = document.getElementById('playlistHeader');
-            playlistHeaderDiv.innerHTML = `
-              <img src="${data.details.cover}" alt="Playlist Cover" class="w-32 h-32 sm:w-24 sm:h-24 rounded-lg mr-0 sm:mr-4 mb-4 sm:mb-0 object-cover shadow-lg">
-              <div class="text-center sm:text-left">
-                <h2 class="text-xl sm:text-2xl font-bold text-green-400 mb-2">${data.details.title}</h2>
-                <p class="text-gray-400 mb-2">
-                  <i class="fas fa-music mr-2"></i>${data.tracks.trackList.length} tracks
-                </p>
-                <p class="text-gray-500 text-sm hidden sm:block">
-                  <i class="fas fa-user-friends mr-2"></i>${data.details.playlistOwner}
-                </p>
-              </div>
-            `;
-
-            // Clear previous results
-            const resultDiv = document.getElementById('result');
-            resultDiv.innerHTML = '';
-
-            // Add each song's details to the list
-            data.tracks.trackList.forEach((song, index) => {
-              const songElement = document.createElement('div');
-              songElement.className = 'bg-gray-800 rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 ease-in-out transform hover:-translate-y-1 cursor-pointer';
-              songElement.innerHTML = `
-                <div class="flex p-3 sm:p-4">
-                  <img src="${song.cover}" alt="${song.title}" class="w-16 h-16 sm:w-24 sm:h-24 rounded-lg object-cover mr-3 sm:mr-4">
-                  <div class="flex-grow overflow-hidden">
-                    <h3 class="text-base sm:text-xl font-semibold text-green-300 truncate">${song.title}</h3>
-                    <p class="text-gray-400 truncate text-sm sm:text-base"><i class="fas fa-user mr-2"></i>${song.artists}</p>
-                    <div class="hidden sm:block">
-                      <p class="text-gray-500 text-xs sm:text-sm mt-1 truncate">
-                        <i class="fas fa-record-vinyl mr-2"></i>${song.album}
-                      </p>
-                      <p class="text-gray-500 text-xs sm:text-sm truncate">
-                        <i class="fas fa-calendar-alt mr-2"></i>${song.releaseDate || "Release Date N/A"}
-                      </p>
+<body class="bg-gradient-to-br from-gray-900 to-black min-h-screen text-white touch-manipulation">
+    <div class="container mx-auto px-2 sm:px-4 py-4 sm:py-8 max-w-6xl">
+        <div class="bg-gray-800 rounded-xl shadow-2xl p-4 sm:p-8">
+            <!-- Header Section -->
+            <div class="flex flex-col space-y-4 mb-6">
+                <h1 class="text-2xl sm:text-4xl font-bold text-green-500 text-center">
+                    <i class="fab fa-spotify mr-2"></i>Playlist Manager
+                </h1>
+                
+                <!-- Control buttons group -->
+                <div class="button-group flex flex-col sm:flex-row justify-center items-center space-y-3 sm:space-y-0 sm:space-x-4">
+                    <!-- Mode Switch -->
+                    <div class="mode-switch flex items-center space-x-3 bg-gray-700 px-4 py-2 rounded-lg">
+                        <span class="text-sm text-gray-300">Offline</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="modeToggle">
+                            <span class="slider"></span>
+                        </label>
+                        <span class="text-sm text-gray-300">Online</span>
                     </div>
-                  </div>
+                    
+                    <!-- Action Buttons -->
+                    <button 
+                        onclick="window.open('https://open.spotify.com', '_blank')"
+                        class="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none"
+                    >
+                        <i class="fab fa-spotify mr-2"></i>Open Spotify
+                    </button>
+                    <button 
+                        id="addPlaylistBtn"
+                        class="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none"
+                        onclick="toggleInputBox()"
+                    >
+                        <i class="fas fa-plus mr-2"></i>Add Playlist
+                    </button>
                 </div>
-              `;
-              songElement.addEventListener('click', () => {
-                currentTrackIndex = index;
-                playSong(song.id, song.title, song.artists, song.cover);
-              });
-              resultDiv.appendChild(songElement);
-            });
+            </div>
 
-            // Show playlist info
-            document.getElementById('loading').classList.add('hidden');
-            document.getElementById('playlistInfo').classList.remove('hidden');
-          } else {
-            showError("Failed to fetch playlist info. Please check the URL.");
-          }
-        })
-        .catch(error => {
-          console.error("Error fetching data:", error);
-          showError("An error occurred. Please check the URL and try again.");
-        });
+            <!-- Input Box -->
+            <div id="inputBox" class="hidden bg-gray-700 rounded-lg p-4 mb-6">
+                <div class="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4">
+                    <input 
+                        type="text" 
+                        id="playlistUrl" 
+                        placeholder="Enter Spotify Playlist URL" 
+                        class="w-full px-4 py-2 bg-gray-600 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                    >
+                    <button 
+                        onclick="fetchPlaylistData()"
+                        class="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg transition duration-300"
+                    >
+                        Add
+                    </button>
+                </div>
+            </div>
+
+            <!-- Playlists Section -->
+            <h2 class="text-xl font-semibold mb-4 text-green-400">
+                <i class="fas fa-list-alt mr-2"></i>My Playlists
+            </h2>
+
+            <div 
+                id="playlistList" 
+                class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"
+            ></div>
+
+            <!-- Empty State -->
+            <div 
+                id="emptyState" 
+                class="hidden text-center py-12 bg-gray-700 rounded-lg"
+            >
+                <i class="fas fa-music text-5xl text-green-500 mb-4"></i>
+                <p class="text-lg text-gray-400">
+                    No playlists added yet. 
+                    <br>Click "Add Playlist" to get started!
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Playlist Details -->
+    <div 
+        id="playlistModal" 
+        class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden items-center justify-center p-2 sm:p-4"
+    >
+        <div class="bg-gray-800 rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div class="p-4 sm:p-6">
+                <div class="flex justify-between items-center mb-4 sm:mb-6">
+                    <h2 id="modalPlaylistTitle" class="text-xl sm:text-2xl font-bold text-green-400 truncate"></h2>
+                    <button 
+                        onclick="closeModal()"
+                        class="text-gray-400 hover:text-white"
+                    >
+                        <i class="fas fa-times text-xl sm:text-2xl"></i>
+                    </button>
+                </div>
+                <div id="modalPlaylistContent" class="flex flex-col sm:flex-row items-center"></div>
+            </div>
+        </div>
+    </div>
+
+
+
+
+<script>
+    // Initialize Supabase client immediately
+    const supabaseClient = (() => {
+        const SUPABASE_URL = 'https://lfamfghbwhuvuizchcao.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxmYW1mZ2hid2h1dnVpemNoY2FvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzc5NjM3NTksImV4cCI6MjA1MzUzOTc1OX0.PQsopnynPI9hOpMHZ_8ceTOfP4r8DhvN_WB0ejWfau0';
+        
+        try {
+            return supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        } catch (error) {
+            console.error('Failed to initialize Supabase client:', error);
+            return null;
+        }
+    })();
+
+    // Add error handling for Supabase initialization
+    if (!supabaseClient) {
+        alert('Failed to initialize database connection. Please refresh the page.');
     }
+
+    function toggleInputBox() {
+        const inputBox = document.getElementById('inputBox');
+        inputBox.classList.toggle('hidden');
+    }
+
+    async function fetchPlaylistData() {
+        if (!supabaseClient) {
+            alert('Database connection not available. Please refresh the page.');
+            return;
+        }
+
+        const url = document.getElementById('playlistUrl').value;
+        if (!url) {
+            alert("Please enter a valid Spotify playlist URL.");
+            return;
+        }
+
+        const playlistId = url.split("/").pop().split("?")[0];
+        const apiUrl = `https://cors.karankingrider.workers.dev/?url=https://sp-sigma.vercel.app/api/spotifyPlaylist?id=${playlistId}`;
+
+        try {
+            const response = await fetch(apiUrl);
+            const data = await response.json();
+            if (data && data.title && data.cover) {
+                await savePlaylist(data, playlistId);
+                document.getElementById('playlistUrl').value = '';
+                document.getElementById('inputBox').classList.add('hidden');
+            } else {
+                alert("Failed to fetch playlist data.");
+            }
+        } catch (error) {
+            console.error('Error fetching playlist:', error);
+            alert("An error occurred while fetching the playlist data.");
+        }
+    }
+
+    async function savePlaylist(data, playlistId) {
+        if (!supabaseClient) {
+            alert('Database connection not available. Please refresh the page.');
+            return;
+        }
+
+        try {
+            const { data: existingPlaylist, error: checkError } = await supabaseClient
+                .from('playlists')
+                .select('*')
+                .eq('id', playlistId)
+                .single();
+
+            if (checkError && checkError.code !== 'PGRST116') {
+                console.error('Error checking playlist:', checkError);
+                alert("An error occurred while checking the playlist.");
+                return;
+            }
+
+            if (existingPlaylist) {
+                alert('This playlist is already in your collection.');
+                return;
+            }
+
+            const { error: insertError } = await supabaseClient
+                .from('playlists')
+                .insert([{ id: playlistId, title: data.title, cover: data.cover }]);
+
+            if (insertError) {
+                console.error('Error inserting playlist:', insertError);
+                alert("An error occurred while saving the playlist.");
+                return;
+            }
+
+            loadPlaylists();
+        } catch (error) {
+            console.error('Error saving playlist:', error);
+            alert("An error occurred while saving the playlist.");
+        }
+    }
+
     
-    //notif
-    function updateNotification(title, artist, cover) {
-  // Check if the browser supports the Media Session API
-  if ('mediaSession' in navigator) {
-    // Set the metadata
-    navigator.mediaSession.metadata = new MediaMetadata({
-      title: title,
-      artist: artist,
-      artwork: [
-        { src: cover, sizes: '96x96', type: 'image/png' }, // small image
-        { src: cover, sizes: '128x128', type: 'image/png' }, // medium image
-        { src: cover, sizes: '192x192', type: 'image/png' }, // large image
-      ]
-    });
+        // Enhanced mobile touch handling for playlist cards
+        function createPlaylistCard(playlist) {
+            const playlistCard = document.createElement('div');
+            playlistCard.className = `
+                bg-gray-700 rounded-lg overflow-hidden shadow-md 
+                hover:shadow-xl transition-all duration-300 
+                relative group touch-manipulation
+            `;
+            
+            const modeToggle = document.getElementById('modeToggle');
+            const targetPage = modeToggle.checked ? 'play.html' : 'down.html';
+            
+            playlistCard.innerHTML = `
+                <div class="relative">
+                    <a href="${targetPage}?id=${playlist.id}" class="block">
+                        <img 
+                            src="${playlist.cover}" 
+                            alt="${playlist.title}" 
+                            class="w-full aspect-square object-cover"
+                            loading="lazy"
+                        >
+                        <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-300"></div>
+                    </a>
+                    <button 
+                        onclick="event.preventDefault(); event.stopPropagation(); deletePlaylist('${playlist.id}')"
+                        class="absolute top-2 right-2 bg-red-500 text-white rounded-full w-8 h-8 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                        aria-label="Delete playlist"
+                    >
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+                <div class="p-4">
+                    <h3 class="text-lg font-semibold text-green-300 truncate">${playlist.title}</h3>
+                </div>
+            `;
+            
+            return playlistCard;
+        }
 
-    // Set up the playback controls in the notification
-    navigator.mediaSession.setActionHandler('play', () => {
-      audioElement.play();
-    });
-    navigator.mediaSession.setActionHandler('pause', () => {
-      audioElement.pause();
-    });
-    navigator.mediaSession.setActionHandler('nexttrack', () => {
-      playNextTrack(); // Replace with your next track function
-    });
-    navigator.mediaSession.setActionHandler('previoustrack', () => {
-      playPreviousTrack(); // Replace with your previous track function
-    });
-  }
-}
+        // Update loadPlaylists function to use the new createPlaylistCard
+        async function loadPlaylists() {
+            if (!supabaseClient) {
+                alert('Database connection not available. Please refresh the page.');
+                return;
+            }
 
+            try {
+                const { data: playlists, error } = await supabaseClient
+                    .from('playlists')
+                    .select('*');
 
-  </script>
+                if (error) throw error;
+
+                const playlistList = document.getElementById('playlistList');
+                const emptyState = document.getElementById('emptyState');
+
+                playlistList.innerHTML = '';
+
+                if (!playlists || playlists.length === 0) {
+                    emptyState.classList.remove('hidden');
+                    return;
+                }
+
+                emptyState.classList.add('hidden');
+                playlists.forEach(playlist => {
+                    playlistList.appendChild(createPlaylistCard(playlist));
+                });
+            } catch (error) {
+                console.error('Error loading playlists:', error);
+                alert("An error occurred while loading playlists.");
+            }
+        }
+
+    async function deletePlaylist(id) {
+        if (!supabaseClient) {
+            alert('Database connection not available. Please refresh the page.');
+            return;
+        }
+
+        try {
+            const { error } = await supabaseClient
+                .from('playlists')
+                .delete()
+                .eq('id', id);
+
+            if (error) {
+                console.error('Error deleting playlist:', error);
+                alert("Failed to delete playlist");
+                return;
+            }
+
+            loadPlaylists();
+        } catch (error) {
+            console.error('Error deleting playlist:', error);
+            alert("An error occurred while deleting the playlist.");
+        }
+    }
+
+    function closeModal() {
+        const modal = document.getElementById('playlistModal');
+        modal.classList.remove('flex');
+        modal.classList.add('hidden');
+    }
+
+    // Initialize app only after DOM is fully loaded
+    // Load mode toggle state from localStorage
+        document.addEventListener('DOMContentLoaded', () => {
+            const modeToggle = document.getElementById('modeToggle');
+            const savedMode = localStorage.getItem('playlistMode');
+            
+            if (savedMode !== null) {
+                modeToggle.checked = savedMode === 'play';
+            }
+            
+            if (supabaseClient) {
+                loadPlaylists();
+            }
+            
+            // Add event listener for mode toggle
+            modeToggle.addEventListener('change', (e) => {
+                localStorage.setItem('playlistMode', e.target.checked ? 'play' : 'download');
+                loadPlaylists();
+            });
+        });
+    </script>
 </body>
-  </html>
+</html>
+
+
