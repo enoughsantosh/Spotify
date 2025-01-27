@@ -10,26 +10,15 @@
 </head>
 <body class="bg-gradient-to-br from-gray-900 to-black min-h-screen text-white touch-manipulation pb-24">
   <div class="container mx-auto px-4 py-4 sm:py-8 max-w-4xl">
+    <!-- Back Button -->
+    <button onclick="history.back()" class="mb-4 text-green-500 hover:text-green-400 transition-colors">
+      <i class="fas fa-arrow-left mr-2"></i>Back
+    </button>
+
     <div class="bg-gray-800 rounded-xl shadow-2xl p-4 sm:p-8">
       <h1 class="text-2xl sm:text-4xl font-bold text-center mb-4 sm:mb-6 text-green-500">
         <i class="fab fa-spotify mr-2 sm:mr-3"></i>Playlist Explorer
       </h1>
-      
-      <div id="inputSection" class="flex flex-col sm:flex-row mb-4 sm:mb-6">
-        <input 
-          type="text" 
-          id="playlistUrl" 
-          placeholder="Paste Spotify playlist URL" 
-          class="w-full px-3 py-2 sm:px-4 sm:py-3 bg-gray-700 text-white rounded-t-lg sm:rounded-l-lg sm:rounded-r-none focus:outline-none focus:ring-2 focus:ring-green-500 mb-2 sm:mb-0"
-        >
-        <button 
-          id="fetchButton"
-          onclick="fetchPlaylistInfo()" 
-          class="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white px-4 py-2 sm:px-6 sm:py-3 sm:rounded-r-lg transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none rounded-b-lg sm:rounded-b-none"
-        >
-          <i class="fas fa-search mr-2"></i>Fetch Playlist
-        </button>
-      </div>
 
       <div id="loading" class="hidden text-center py-8">
         <div class="animate-spin inline-block w-12 h-12 border-4 border-green-500 border-t-transparent rounded-full"></div>
@@ -39,50 +28,139 @@
       <div id="error" class="hidden bg-red-600 bg-opacity-20 border border-red-500 rounded-lg p-4 text-center"></div>
 
       <div id="playlistInfo" class="hidden">
-        <div id="playlistHeader" class="mb-8 flex flex-col sm:flex-row items-center bg-gray-700 rounded-lg p-4"></div>
+        <div id="playlistHeader" class="mb-8 flex flex-col sm:flex-row items-center bg-gray-700 rounded-lg p-4">
+          <!-- Playlist header content -->
+        </div>
+        
+        <!-- Playlist Controls -->
+        <div class="flex justify-between items-center mb-4">
+          <button id="playAllButton" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-full transition-colors">
+            <i class="fas fa-play mr-2"></i>Play All
+          </button>
+          <button id="downloadPlaylist" class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-full transition-colors">
+            <i class="fas fa-download mr-2"></i>Download Playlist
+          </button>
+        </div>
+        
         <div id="result" class="grid grid-cols-1 gap-4"></div>
       </div>
     </div>
   </div>
-
-  <!-- Audio Player -->
-  <div id="audioPlayer" class="fixed bottom-0 left-0 right-0 bg-gray-900 transform translate-y-full transition-transform duration-300 ease-in-out shadow-lg">
-    <div class="container mx-auto max-w-4xl">
-      <div class="flex items-center p-4 space-x-4">
-        <div class="relative">
-          <img id="playerCover" src="" alt="Cover" class="w-16 h-16 rounded-lg object-cover">
-          <div id="loadingOverlay" class="absolute inset-0 bg-black bg-opacity-50 rounded-lg hidden items-center justify-center">
-            <div class="animate-spin w-8 h-8 border-4 border-green-500 border-t-transparent rounded-full"></div>
-          </div>
-        </div>
-        <div class="flex-grow min-w-0">
-          <h3 id="playerTitle" class="text-green-400 font-semibold text-sm sm:text-base truncate"></h3>
-          <p id="playerArtist" class="text-gray-400 text-xs sm:text-sm truncate"></p>
-        </div>
-        <div class="flex items-center space-x-3">
-          <button id="playPauseBtn" class="p-2 hover:bg-gray-800 rounded-full transition-colors">
-            <i class="fas fa-play text-green-500 hover:text-green-400"></i>
-          </button>
-          <a id="downloadBtn" href="#" download class="p-2 hover:bg-gray-800 rounded-full transition-colors">
-            <i class="fas fa-download text-green-500 hover:text-green-400"></i>
-          </a>
-          <button id="closePlayer" class="p-2 hover:bg-gray-800 rounded-full transition-colors">
-            <i class="fas fa-times text-gray-400 hover:text-white"></i>
-          </button>
+<!-- Audio Player -->
+<div id="audioPlayer" class="fixed bottom-0 left-0 right-0 bg-gray-900 transform translate-y-full transition-transform duration-300 ease-in-out shadow-lg">
+  <div class="container mx-auto max-w-4xl">
+    <!-- Mobile Expand Button -->
+    <div id="expandToggle" class="absolute -top-4 right-4 bg-gray-800 p-2 rounded-full cursor-pointer sm:hidden">
+      <i class="fas fa-chevron-up text-gray-400"></i>
+    </div>
+    <!-- Player Content -->
+    <div class="flex items-center p-4 space-x-4">
+      <!-- Player Cover -->
+      <div id="playerCoverContainer" class="relative flex">
+        <img id="playerCover" src="" alt="Cover" class="w-16 h-16 rounded-lg object-cover">
+        <div id="loadingOverlay" class="absolute inset-0 bg-black bg-opacity-50 rounded-lg hidden items-center justify-center">
+          <div class="animate-spin w-8 h-8 border-4 border-green-500 border-t-transparent rounded-full"></div>
         </div>
       </div>
-      <div class="px-4 pb-4">
-        <div class="flex items-center space-x-2">
-          <span id="currentTime" class="text-xs text-gray-400">0:00</span>
-          <div class="flex-grow bg-gray-700 h-1 rounded-full">
-            <div id="progressBar" class="bg-green-500 h-1 rounded-full w-0"></div>
-          </div>
-          <span id="duration" class="text-xs text-gray-400">0:00</span>
+      <!-- Player Title and Artist -->
+      <div id="playerInfo" class="flex-grow min-w-0">
+        <h3 id="playerTitle" class="text-green-400 font-semibold text-sm sm:text-base truncate"></h3>
+        <p id="playerArtist" class="text-gray-400 text-xs sm:text-sm truncate"></p>
+      </div>
+      <!-- Controls -->
+      <div class="flex items-center space-x-3">
+        <button id="previewBtn" class="">
+          <i class="fas fa-step-backward text-green-500 "></i>
+        </button>
+        <button id="playPauseBtn" class="p-2 hover:bg-gray-800 rounded-full transition-colors">
+          <i class="fas fa-play text-green-500 "></i>
+        </button>
+        <button id="nextBtn" class="">
+          <i class="fas fa-step-forward text-green-500 "></i>
+        </button>
+        <!-- Extra Buttons (Hidden in Normal View, Visible in Expanded View) -->
+        <div id="extraControls" class="hidden sm:flex items-center space-x-3">
+          <button id="loopBtn" class="">
+            <i class="fas fa-redo text-gray-400 "></i>
+          </button>
+          <a id="downloadBtn" href="#" download class="">
+            <i class="fas fa-download text-green-500 "></i>
+          </a>
         </div>
-        <audio id="audioElement"></audio>
+        <button id="closePlayer" class="hidden p-2 hover:bg-gray-800 rounded-full transition-colors">
+          <i class="fas fa-times text-gray-400 hover:text-white"></i>
+        </button>
       </div>
     </div>
+    <!-- Progress Bar -->
+    <div class="px-4 pb-4">
+      <div class="flex items-center space-x-2">
+        <span id="currentTime" class="text-xs text-gray-400">0:00</span>
+        <div class="flex-grow bg-gray-700 h-1 rounded-full">
+          <div id="progressBar" class="bg-green-500 h-1 rounded-full w-0"></div>
+        </div>
+        <span id="duration" class="text-xs text-gray-400">0:00</span>
+      </div>
+      <audio id="audioElement"></audio>
+    </div>
   </div>
+</div>
+
+<!-- Styles -->
+<style>
+  #audioPlayer {
+    max-width: 100%;
+    padding: 1rem;
+  }
+
+  /* Mobile-specific styles */
+  @media (max-width: 640px) {
+    
+    #extraControls {
+      display: none;
+    }
+
+    #expandToggle {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .space-x-3 {
+      gap: 0.5rem;
+    }
+
+    #playerCover {
+      width: 3rem;
+      height: 3rem;
+    }
+
+    .text-xs {
+      font-size: 0.75rem;
+    }
+
+    .text-sm {
+      font-size: 0.875rem;
+    }
+  }
+
+  /* Expanded Mobile View */
+  
+  .expanded #extraControls {
+    display: flex !important;
+  }
+
+  .expanded #expandToggle i {
+    transform: rotate(180deg);
+  }
+  .expanded #playerInfo {
+      display: none;
+  }
+    .expanded #closePlayer {
+      display: flex;
+  }
+</style>
+
 
   <script>
     // Global variables for playlist functionality
@@ -106,10 +184,85 @@
     const playPauseBtn = document.getElementById('playPauseBtn');
     const downloadBtn = document.getElementById('downloadBtn');
     const loadingOverlay = document.getElementById('loadingOverlay');
+    const audio = document.getElementById("audioElement");
+const loopBtn = document.getElementById("loopBtn");
+
+const previewBtn = document.getElementById("previewBtn");
+const nextBtn = document.getElementById("nextBtn");
+const expandToggle = document.getElementById("expandToggle");
+
+
+expandToggle.addEventListener("click", () => {
+  audioPlayer.classList.toggle("expanded");
+      audioPlayer.classList.toggle("translate-y-full");
+
+  // Update the expand/collapse icon
+  const icon = expandToggle.querySelector("i");
+  if (audioPlayer.classList.contains("expanded")) {
+    icon.classList.replace("fa-chevron-up", "fa-chevron-down");
+  } else {
+    icon.classList.replace("fa-chevron-down", "fa-chevron-up");
+  }
+});
+
+let isLooping = false;
+
+// Toggle loop functionality
+// Previous functionality (Preview)
+previewBtn.addEventListener("click", () => {
+  if (currentTrackIndex > 0) {
+    currentTrackIndex--;
+    const prevTrack = currentPlaylistTracks[currentTrackIndex];
+    playSong(prevTrack.id, prevTrack.title, prevTrack.artists, prevTrack.cover);
+  } else {
+    console.log("No previous track available");
+  }
+});
+
+// Add event listener for Play All button
+    document.getElementById('playAllButton').addEventListener('click', () => {
+      if (currentPlaylistTracks.length > 0) {
+        currentTrackIndex = 0;
+        const firstTrack = currentPlaylistTracks[0];
+        playSong(firstTrack.id, firstTrack.title, firstTrack.artists, firstTrack.cover);
+      }
+    });
+
+// Add event listener for Download Playlist button
+    document.getElementById('downloadPlaylist').addEventListener('click', () => {
+      const playlistId = new URLSearchParams(window.location.search).get('id');
+      if (playlistId) {
+        const downloadUrl = `https://yank.g3v.co.uk/playlist/${playlistId}`;
+        window.open(downloadUrl, '_blank');
+      }
+    });
+
+// Next functionality (Next)
+nextBtn.addEventListener("click", () => {
+  if (currentTrackIndex < currentPlaylistTracks.length - 1) {
+    currentTrackIndex++;
+    const nextTrack = currentPlaylistTracks[currentTrackIndex];
+    playSong(nextTrack.id, nextTrack.title, nextTrack.artists, nextTrack.cover);
+  } else {
+    console.log("No next track available");
+  }
+});
+
+
+
+// Loop button functionality
+loopBtn.addEventListener("click", () => {
+  isLooping = !isLooping;
+  audioElement.loop = isLooping;
+  loopBtn.querySelector("i").classList.toggle("text-green-400", isLooping);
+});
+
+
+
 
     // If playlistId exists, fetch playlist info automatically and hide input section
     if (playlistId) {
-      document.getElementById('inputSection').classList.add('hidden');
+      
       fetchPlaylistInfo(playlistId);
     }
 
@@ -161,14 +314,19 @@
     }
 
     function showError(message) {
-      const errorDiv = document.getElementById('error');
-      errorDiv.innerHTML = `
-        <i class="fas fa-exclamation-triangle mr-2"></i>
-        ${message}
-      `;
-      document.getElementById('loading').classList.add('hidden');
-      errorDiv.classList.remove('hidden');
-    }
+  const errorDiv = document.getElementById('error');
+  errorDiv.innerHTML = `
+    <i class="fas fa-exclamation-triangle mr-2"></i>
+    ${message}
+  `;
+  document.getElementById('loading').classList.add('hidden');
+  errorDiv.classList.remove('hidden');
+
+  // Hide the error message after 2 seconds
+  setTimeout(() => {
+    errorDiv.classList.add('hidden');
+  }, 2000);
+}
 
     function formatTime(seconds) {
       const minutes = Math.floor(seconds / 60);
@@ -205,7 +363,11 @@
       playerArtist.textContent = artist;
       playerCover.src = cover;
       audioPlayer.style.transform = 'translateY(0)';
-      audioElement.play();
+      audioElement.play().catch(() => {
+    showError("Failed to load the track. Skipping to the next song...");
+    playNextTrack();
+  });
+
     }
 
     function fetchPlaylistInfo(playlistId) {
