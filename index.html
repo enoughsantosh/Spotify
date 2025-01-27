@@ -18,56 +18,131 @@
             background: #4ade80;
             border-radius: 3px;
         }
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 52px;
+            height: 28px;
+        }
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 28px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider {
+            background-color: #4ade80;
+        }
+        input:checked + .slider:before {
+            transform: translateX(24px);
+        }
+        @media (max-width: 640px) {
+            .button-group {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 0.5rem;
+            }
+            .mode-switch {
+                grid-column: span 2;
+                justify-content: center;
+            }
+        }
     </style>
 </head>
 <body class="bg-gradient-to-br from-gray-900 to-black min-h-screen text-white touch-manipulation">
     <div class="container mx-auto px-2 sm:px-4 py-4 sm:py-8 max-w-6xl">
         <div class="bg-gray-800 rounded-xl shadow-2xl p-4 sm:p-8">
-            <div class="flex flex-col sm:flex-row justify-between items-center mb-4 sm:mb-8">
-                <h1 class="text-2xl sm:text-4xl font-bold text-green-500 mb-4 sm:mb-0 text-center w-full sm:text-left sm:w-auto">
-                    <i class="fab fa-spotify mr-2 sm:mr-3"></i>Playlist Manager
+            <!-- Header Section -->
+            <div class="flex flex-col space-y-4 mb-6">
+                <h1 class="text-2xl sm:text-4xl font-bold text-green-500 text-center">
+                    <i class="fab fa-spotify mr-2"></i>Playlist Manager
                 </h1>
-                <button 
-                    id="addPlaylistBtn"
-                    class="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none flex items-center justify-center"
-                    onclick="toggleInputBox()"
-                >
-                    <i class="fas fa-plus mr-2"></i>Add Playlist
-                </button>
+                
+                <!-- Control buttons group -->
+                <div class="button-group flex flex-col sm:flex-row justify-center items-center space-y-3 sm:space-y-0 sm:space-x-4">
+                    <!-- Mode Switch -->
+                    <div class="mode-switch flex items-center space-x-3 bg-gray-700 px-4 py-2 rounded-lg">
+                        <span class="text-sm text-gray-300">Offline</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="modeToggle">
+                            <span class="slider"></span>
+                        </label>
+                        <span class="text-sm text-gray-300">Online</span>
+                    </div>
+                    
+                    <!-- Action Buttons -->
+                    <button 
+                        onclick="window.open('https://open.spotify.com', '_blank')"
+                        class="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none"
+                    >
+                        <i class="fab fa-spotify mr-2"></i>Open Spotify
+                    </button>
+                    <button 
+                        id="addPlaylistBtn"
+                        class="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none"
+                        onclick="toggleInputBox()"
+                    >
+                        <i class="fas fa-plus mr-2"></i>Add Playlist
+                    </button>
+                </div>
             </div>
 
-            <div id="inputBox" class="hidden bg-gray-700 rounded-lg p-4 sm:p-6 mb-4 sm:mb-8 transition-all duration-300 ease-in-out">
-                <div class="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
+            <!-- Input Box -->
+            <div id="inputBox" class="hidden bg-gray-700 rounded-lg p-4 mb-6">
+                <div class="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4">
                     <input 
                         type="text" 
                         id="playlistUrl" 
                         placeholder="Enter Spotify Playlist URL" 
-                        class="w-full px-3 sm:px-4 py-2 sm:py-3 bg-gray-600 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                        class="w-full px-4 py-2 bg-gray-600 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
                     >
                     <button 
                         onclick="fetchPlaylistData()"
-                        class="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none"
+                        class="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg transition duration-300"
                     >
                         Add
                     </button>
                 </div>
             </div>
 
-            <h2 class="text-xl sm:text-2xl font-semibold mb-4 sm:mb-6 text-green-400">
-                <i class="fas fa-list-alt mr-2 sm:mr-3"></i>My Playlists
+            <!-- Playlists Section -->
+            <h2 class="text-xl font-semibold mb-4 text-green-400">
+                <i class="fas fa-list-alt mr-2"></i>My Playlists
             </h2>
 
             <div 
                 id="playlistList" 
-                class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-6"
+                class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"
             ></div>
 
+            <!-- Empty State -->
             <div 
                 id="emptyState" 
-                class="hidden text-center py-8 sm:py-16 bg-gray-700 rounded-lg"
+                class="hidden text-center py-12 bg-gray-700 rounded-lg"
             >
-                <i class="fas fa-music text-4xl sm:text-6xl text-green-500 mb-4"></i>
-                <p class="text-base sm:text-xl text-gray-400">
+                <i class="fas fa-music text-5xl text-green-500 mb-4"></i>
+                <p class="text-lg text-gray-400">
                     No playlists added yet. 
                     <br>Click "Add Playlist" to get started!
                 </p>
@@ -195,71 +270,79 @@
         }
     }
 
-    async function loadPlaylists() {
-        if (!supabaseClient) {
-            alert('Database connection not available. Please refresh the page.');
-            return;
+    
+        // Enhanced mobile touch handling for playlist cards
+        function createPlaylistCard(playlist) {
+            const playlistCard = document.createElement('div');
+            playlistCard.className = `
+                bg-gray-700 rounded-lg overflow-hidden shadow-md 
+                hover:shadow-xl transition-all duration-300 
+                relative group touch-manipulation
+            `;
+            
+            const modeToggle = document.getElementById('modeToggle');
+            const targetPage = modeToggle.checked ? 'play.html' : 'down.html';
+            
+            playlistCard.innerHTML = `
+                <div class="relative">
+                    <a href="${targetPage}?id=${playlist.id}" class="block">
+                        <img 
+                            src="${playlist.cover}" 
+                            alt="${playlist.title}" 
+                            class="w-full aspect-square object-cover"
+                            loading="lazy"
+                        >
+                        <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-300"></div>
+                    </a>
+                    <button 
+                        onclick="event.preventDefault(); event.stopPropagation(); deletePlaylist('${playlist.id}')"
+                        class="absolute top-2 right-2 bg-red-500 text-white rounded-full w-8 h-8 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                        aria-label="Delete playlist"
+                    >
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+                <div class="p-4">
+                    <h3 class="text-lg font-semibold text-green-300 truncate">${playlist.title}</h3>
+                </div>
+            `;
+            
+            return playlistCard;
         }
 
-        try {
-            const { data: playlists, error } = await supabaseClient
-                .from('playlists')
-                .select('*');
+        // Update loadPlaylists function to use the new createPlaylistCard
+        async function loadPlaylists() {
+            if (!supabaseClient) {
+                alert('Database connection not available. Please refresh the page.');
+                return;
+            }
 
-            if (error) {
+            try {
+                const { data: playlists, error } = await supabaseClient
+                    .from('playlists')
+                    .select('*');
+
+                if (error) throw error;
+
+                const playlistList = document.getElementById('playlistList');
+                const emptyState = document.getElementById('emptyState');
+
+                playlistList.innerHTML = '';
+
+                if (!playlists || playlists.length === 0) {
+                    emptyState.classList.remove('hidden');
+                    return;
+                }
+
+                emptyState.classList.add('hidden');
+                playlists.forEach(playlist => {
+                    playlistList.appendChild(createPlaylistCard(playlist));
+                });
+            } catch (error) {
                 console.error('Error loading playlists:', error);
                 alert("An error occurred while loading playlists.");
-                return;
             }
-
-            const playlistList = document.getElementById('playlistList');
-            const emptyState = document.getElementById('emptyState');
-
-            playlistList.innerHTML = '';
-
-            if (!playlists || playlists.length === 0) {
-                emptyState.classList.remove('hidden');
-                return;
-            }
-
-            emptyState.classList.add('hidden');
-
-            playlists.forEach((playlist) => {
-                const playlistCard = document.createElement('div');
-                playlistCard.className = `
-                    bg-gray-700 rounded-lg overflow-hidden shadow-md 
-                    hover:shadow-xl transition-all duration-300 
-                    ease-in-out transform hover:-translate-y-2 
-                    cursor-pointer
-                `;
-                playlistCard.innerHTML = `
-                    <div class="relative">
-                        <a href="down.html?id=${playlist.id}">
-                            <img 
-                                src="${playlist.cover}" 
-                                alt="Playlist Cover" 
-                                class="w-full h-48 object-cover"
-                            >
-                        </a>
-
-                        <button 
-                            onclick="deletePlaylist('${playlist.id}')" 
-                            class="absolute top-2 right-2 bg-red-500 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-red-600 transition"
-                        >
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </div>
-                    <div class="p-4">
-                        <h3 class="text-lg font-semibold text-green-300 truncate">${playlist.title}</h3>
-                    </div>
-                `;
-                playlistList.appendChild(playlistCard);
-            });
-        } catch (error) {
-            console.error('Error loading playlists:', error);
-            alert("An error occurred while loading playlists.");
         }
-    }
 
     async function deletePlaylist(id) {
         if (!supabaseClient) {
@@ -293,11 +376,27 @@
     }
 
     // Initialize app only after DOM is fully loaded
-    document.addEventListener('DOMContentLoaded', () => {
-        if (supabaseClient) {
-            loadPlaylists();
-        }
-    });
+    // Load mode toggle state from localStorage
+        document.addEventListener('DOMContentLoaded', () => {
+            const modeToggle = document.getElementById('modeToggle');
+            const savedMode = localStorage.getItem('playlistMode');
+            
+            if (savedMode !== null) {
+                modeToggle.checked = savedMode === 'play';
+            }
+            
+            if (supabaseClient) {
+                loadPlaylists();
+            }
+            
+            // Add event listener for mode toggle
+            modeToggle.addEventListener('change', (e) => {
+                localStorage.setItem('playlistMode', e.target.checked ? 'play' : 'download');
+                loadPlaylists();
+            });
+        });
     </script>
 </body>
 </html>
+
+
