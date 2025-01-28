@@ -408,12 +408,13 @@ async function playSong(preview_url, title, artist, cover) {
 
     // Fallback logic: Use the API to fetch the song
     try {
+      const turl = title + ' ' + artist;
       const response = await fetch('https://calm-art-75c5.kalu4134.workers.dev/?url=https://spot-steel.vercel.app/search-and-convert', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ query: title }),
+        body: JSON.stringify({ query: turl }),
       });
 
       const data = await response.json();
