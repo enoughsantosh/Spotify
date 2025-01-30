@@ -370,40 +370,8 @@ async function playSong(preview_url, title, artist, cover) {
     return;
   }
 
-  try {
-    // Disable buttons to prevent multiple presses
-    nextBtn.disabled = true;
-    previewBtn.disabled = true;
-
-    // Show loading overlay
-    loadingOverlay.classList.remove("hidden");
-    loadingOverlay.classList.add("flex");
-
-    // Update player UI
-    audioPlayer.style.transform = "translateY(0)";
-    playerTitle.textContent = title;
-    playerArtist.textContent = artist;
-    playerCover.src = cover;
-
-    // Generate track URL
-    const trackUrl = `https://yank.g3v.co.uk/track/${preview_url}`;
-
-    // Set audio source
-    audioElement.src = trackUrl;
-    downloadBtn.href = trackUrl;
-    downloadBtn.download = `${title}.mp3`; // Set default filename
-
-    // Play the audio
-    await audioElement.play();
-
-    // Hide loading overlay
-    loadingOverlay.classList.add("hidden");
-    loadingOverlay.classList.remove("flex");
-
-    // Update notifications
-    updateNotification(title, artist, cover);
-  } catch (error) {
-    console.error("Error playing the song:", error);
+  
+  
     
 
     // Fallback logic: Use the API to fetch the song
@@ -442,17 +410,18 @@ async function playSong(preview_url, title, artist, cover) {
       showError(`Failed to load "${title}" via fallback. Skipping to the next song...`);
       
       nextBtn.disabled = false;
-      playNextTrack();
-    }
-  } finally {
-    // Re-enable buttons after track loading
-    nextBtn.disabled = false;
-    previewBtn.disabled = false;
+      previewBtn.disabled = false;
 
     // Hide loading overlay
     loadingOverlay.classList.add("hidden");
     loadingOverlay.classList.remove("flex");
-  }
+  
+      playNextTrack();
+    }
+  
+    // Re-enable buttons after track loading
+    
+    
 }
     function fetchPlaylistInfo(playlistId) {
       showLoading();
