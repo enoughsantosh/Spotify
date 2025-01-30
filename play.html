@@ -386,6 +386,8 @@ async function playSong(preview_url, title, artist, cover) {
     playerTitle.textContent = title;
     playerArtist.textContent = artist;
     playerCover.src = cover;
+              // Update UI with track details
+    updateNotification(title, artist, cover);
       // Fallback logic: Use the API to fetch the song
       const turl = `${title} ${artist}`;
       const response = await fetch(
