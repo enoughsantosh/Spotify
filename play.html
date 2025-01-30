@@ -373,6 +373,19 @@ async function playSong(preview_url, title, artist, cover) {
 
   try {
     if (preview_url) {
+          // Disable buttons to prevent multiple presses
+    nextBtn.disabled = true;
+    previewBtn.disabled = true;
+
+    // Show loading overlay
+    loadingOverlay.classList.remove("hidden");
+    loadingOverlay.classList.add("flex");
+
+    // Update player UI
+    audioPlayer.style.transform = "translateY(0)";
+    playerTitle.textContent = title;
+    playerArtist.textContent = artist;
+    playerCover.src = cover;
       // Fallback logic: Use the API to fetch the song
       const turl = `${title} ${artist}`;
       const response = await fetch(
@@ -393,6 +406,14 @@ async function playSong(preview_url, title, artist, cover) {
         // Update download button
         downloadBtn.href = audioSrc;
         downloadBtn.download = data.audio.filename;
+            // Play the selected audio source
+    audioElement.src = audioSrc;
+    await audioElement.play();
+            // Hide loading overlay
+    loadingOverlay.classList.add("hidden");
+    loadingOverlay.classList.remove("flex");
+        nextBtn.disabled = false;
+    previewBtn.disabled = false;
 
         // Update UI with track details
         updateNotification(data.video.title, data.video.channel, data.video.thumbnail);
@@ -401,9 +422,7 @@ async function playSong(preview_url, title, artist, cover) {
       }
     }
 
-    // Play the selected audio source
-    audioElement.src = audioSrc;
-    await audioElement.play();
+
 
   } catch (error) {
     console.error("Error playing song:", error);
