@@ -167,7 +167,10 @@
 </style>
 
 
-  <script>
+<script>
+      if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("/service-worker.js");
+      }
     // Global variables for playlist functionality
     let currentPlaylistTracks = [];
     let currentTrackIndex = -1;
@@ -399,23 +402,12 @@ async function playSong(preview_url, title, artist, cover) {
       
       const data = await response.json();
 
-      // Validate response
-      if (data.audio && data.audio.url) {
-        preview_url = data.audio.url;
-        
-    const response = await fetch(preview_url);
-   }
-   if (!response.ok) {
-      throw new Error("Failed to download the track");
-      loadingOverlay.classList.add('hidden');
-      loadingOverlay.classList.remove('flex');
-      playNextTrack();
-    }
 
-    const audioBlob = await response.blob();
+
 
     // Create an object URL for the Blob
-    const trackUrl = URL.createObjectURL(audioBlob);
+    const trackUrl = data.audio.url;
+      
 
     // Assign the Blob URL to the audio element and the download button
     audioElement.src = trackUrl;
