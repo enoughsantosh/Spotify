@@ -1,10 +1,9 @@
 {
-  "name": "My Web App",
-  "short_name": "Web App",
-  "description": "A great web app with two pages",
+  "name": "Spookify",
+  "short_name": "Spookify",
   "start_url": "/index.html",
   "display": "standalone",
-  "background_color": "#ffffff",
+  "background_color": "#000000",
   "theme_color": "#000000",
   "icons": [
     {
