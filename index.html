@@ -421,7 +421,7 @@ window.addEventListener('beforeinstallprompt', (event) => {
     deferredPrompt = event;
 
     // Show the install button
-    installButton.style.display = 'block';
+    
 
     installButton.addEventListener('click', () => {
         deferredPrompt.prompt(); // Show install prompt
