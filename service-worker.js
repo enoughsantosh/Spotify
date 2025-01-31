@@ -1,34 +1,41 @@
 const CACHE_NAME = 'spookify-v1';
-const URLS_TO_CACHE = [
-    '/',
-    '/index.html',
-    '/play.html',
-    '/down.html',
-    '/offline.html', // Add offline fallback page
-];
+const OFFLINE_URL = '/offline.html';
+const INDEX_URL = '/index.html';
 
-// Install Service Worker and cache resources
 self.addEventListener('install', (event) => {
     event.waitUntil(
-        caches.open('spookify-offline').then((cache) => {
-            return cache.add('/offline.html'); // Only cache offline fallback page
+        caches.open(CACHE_NAME).then((cache) => {
+            return cache.addAll([INDEX_URL, OFFLINE_URL]); // Cache only these files
         })
     );
+    self.skipWaiting(); // Activate service worker immediately
 });
 
 self.addEventListener('fetch', (event) => {
     event.respondWith(
-        fetch(event.request).catch(() => caches.match('/offline.html'))
+        fetch(event.request)
+            .catch(() => {
+                return caches.match(event.request).then((cachedResponse) => {
+                    if (cachedResponse) {
+                        return cachedResponse; // Serve cached index.html if available
+                    }
+                    return caches.match(OFFLINE_URL); // Fallback to offline.html
+                });
+            })
     );
 });
 
-// Ensure old caches are removed
 self.addEventListener('activate', (event) => {
     event.waitUntil(
         caches.keys().then((cacheNames) => {
             return Promise.all(
-                cacheNames.map((cacheName) => caches.delete(cacheName))
+                cacheNames.map((cacheName) => {
+                    if (cacheName !== CACHE_NAME) {
+                        return caches.delete(cacheName);
+                    }
+                })
             );
         })
     );
+    self.clients.claim(); // Ensure immediate control over open pages
 });
