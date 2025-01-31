@@ -71,6 +71,7 @@
         }
     </style>
 </head>
+    <button id="installButton" style="display:none;">Install App</button>
 <body class="bg-gradient-to-br from-gray-900 to-black min-h-screen text-white touch-manipulation">
     <div class="container mx-auto px-2 sm:px-4 py-4 sm:py-8 max-w-6xl">
         <div class="bg-gray-800 rounded-xl shadow-2xl p-4 sm:p-8">
@@ -410,6 +411,30 @@
             console.log('Service Worker registration failed:', error);
         });
     }
+    let deferredPrompt;
+const installButton = document.getElementById('installButton'); 
+
+window.addEventListener('beforeinstallprompt', (event) => {
+    console.log('beforeinstallprompt fired');
+    
+    event.preventDefault(); // Prevent auto-prompt
+    deferredPrompt = event;
+
+    // Show the install button
+    installButton.style.display = 'block';
+
+    installButton.addEventListener('click', () => {
+        deferredPrompt.prompt(); // Show install prompt
+        deferredPrompt.userChoice.then((choiceResult) => {
+            if (choiceResult.outcome === 'accepted') {
+                console.log('User accepted the install prompt');
+            } else {
+                console.log('User dismissed the install prompt');
+            }
+            deferredPrompt = null;
+        });
+    });
+});
     </script>
 </body>
 </html>
