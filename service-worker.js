@@ -10,44 +10,24 @@ const URLS_TO_CACHE = [
 // Install Service Worker and cache resources
 self.addEventListener('install', (event) => {
     event.waitUntil(
-        caches.open(CACHE_NAME).then((cache) => {
-            return cache.addAll(URLS_TO_CACHE);
+        caches.open('spookify-offline').then((cache) => {
+            return cache.add('/offline.html'); // Only cache offline fallback page
         })
     );
 });
 
-// Fetch from cache or network, with fallback
 self.addEventListener('fetch', (event) => {
     event.respondWith(
-        caches.match(event.request).then((cachedResponse) => {
-            if (cachedResponse) {
-                return cachedResponse; // Return cached response if available
-            }
-            return fetch(event.request)
-                .then((response) => {
-                    return caches.open(CACHE_NAME).then((cache) => {
-                        cache.put(event.request, response.clone());
-                        return response;
-                    });
-                })
-                .catch(() => {
-                    return caches.match('/offline.html'); // Fallback to offline page
-                });
-        })
+        fetch(event.request).catch(() => caches.match('/offline.html'))
     );
 });
 
-// Clear old caches during activation
+// Ensure old caches are removed
 self.addEventListener('activate', (event) => {
-    const cacheWhitelist = [CACHE_NAME];
     event.waitUntil(
         caches.keys().then((cacheNames) => {
             return Promise.all(
-                cacheNames.map((cacheName) => {
-                    if (!cacheWhitelist.includes(cacheName)) {
-                        return caches.delete(cacheName);
-                    }
-                })
+                cacheNames.map((cacheName) => caches.delete(cacheName))
             );
         })
     );
