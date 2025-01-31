@@ -2,7 +2,8 @@ const CACHE_NAME = 'spookify-v1';
 const URLS_TO_CACHE = [
     '/',
     '/index.html',
-    '/play.html', // Fallback page when offline
+    '/play.html',
+    '/down.html',
     
 ];
 
