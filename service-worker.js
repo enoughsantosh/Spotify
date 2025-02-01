@@ -5,19 +5,51 @@ const INDEX_URL = '/index.html';
 self.addEventListener('install', (event) => {
     event.waitUntil(
         caches.open(CACHE_NAME).then((cache) => {
-            return cache.addAll([INDEX_URL, OFFLINE_URL]); // Cache only these files
+            return cache.addAll([INDEX_URL, OFFLINE_URL]); // Cache only these files initially
         })
     );
     self.skipWaiting(); // Activate service worker immediately
 });
 
 self.addEventListener('fetch', (event) => {
-    event.respondWith(
-        fetch(event.request)
-            .catch(() => {
-                return caches.match(event.request).then((cachedResponse) => {
+    const request = event.request;
+    const url = new URL(request.url);
+
+    // Handle MP3 files separately
+    if (url.pathname.endsWith('.mp3')) {
+        event.respondWith(
+            caches.open(CACHE_NAME).then((cache) => {
+                return cache.match(request).then((cachedResponse) => {
                     if (cachedResponse) {
-                        return cachedResponse; // Serve cached index.html if available
+                        console.log("Serving MP3 from cache:", request.url);
+                        return cachedResponse;
+                    }
+                    return fetch(request)
+                        .then((networkResponse) => {
+                            console.log("Fetching and caching MP3:", request.url);
+                            cache.put(request, networkResponse.clone());
+                            return networkResponse;
+                        })
+                        .catch(() => {
+                            console.log("MP3 not available offline:", request.url);
+                            return new Response("Audio file not available offline.", {
+                                status: 503,
+                                statusText: "Service Unavailable"
+                            });
+                        });
+                });
+            })
+        );
+        return;
+    }
+
+    // Default fetch behavior with offline fallback
+    event.respondWith(
+        fetch(request)
+            .catch(() => {
+                return caches.match(request).then((cachedResponse) => {
+                    if (cachedResponse) {
+                        return cachedResponse;
                     }
                     return caches.match(OFFLINE_URL); // Fallback to offline.html
                 });
