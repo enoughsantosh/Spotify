@@ -374,65 +374,75 @@ progressContainer.addEventListener('click', seekAudio);
 
 async function playSong(preview_url, title, artist, cover) {
   if (!preview_url) {
-    showError("Preview not available for this track");
-    return;
+    showError("Preview not available for this track. Trying fallback...");
   }
 
+  
+
   try {
+    if (preview_url) {
+          // Disable buttons to prevent multiple presses
+    nextBtn.disabled = true;
+    previewBtn.disabled = true;
+
     // Show loading overlay
-    loadingOverlay.classList.remove('hidden');
-    loadingOverlay.classList.add('flex');
+    loadingOverlay.classList.remove("hidden");
+    loadingOverlay.classList.add("flex");
 
     // Update player UI
-    audioPlayer.style.transform = 'translateY(0)';
+    audioPlayer.style.transform = "translateY(0)";
     playerTitle.textContent = title;
     playerArtist.textContent = artist;
     playerCover.src = cover;
+              // Update UI with track details
     updateNotification(title, artist, cover);
+      // Fallback logic: Use the API to fetch the song
+      const turl = `${title} ${artist}`;
+      const response = await fetch(
+        "https://calm-art-75c5.kalu4134.workers.dev/?url=https://spot-steel.vercel.app/search-and-convert",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query: turl }),
+        }
+      );
 
-    const turl = `${title} ${artist}`;
-    const response = await fetch(
-      "https://calm-art-75c5.kalu4134.workers.dev/?url=https://ytblob.vercel.app/search-and-convert",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: turl }),
+      const data = await response.json();
+
+      // Validate response
+      if (data.audio && data.audio.url) {
+        audioSrc = data.audio.url;
+
+        // Update download button
+        downloadBtn.href = audioSrc;
+        downloadBtn.download = data.audio.filename;
+            // Play the selected audio source
+    audioElement.src = audioSrc;
+    await audioElement.play();
+            // Hide loading overlay
+    loadingOverlay.classList.add("hidden");
+    loadingOverlay.classList.remove("flex");
+        nextBtn.disabled = false;
+    previewBtn.disabled = false;
+
+        // Update UI with track details
+        updateNotification(data.video.title, data.video.channel, data.video.thumbnail);
+      } else {
+        throw new Error("Fallback response does not contain valid audio data.");
       }
-    );
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`);
     }
 
-    // Convert response to a Blob
-    const blob = await response.blob();
-    const trackUrl = URL.createObjectURL(blob);
 
-    if (!audioElement) {
-      throw new Error("Audio player not found.");
-    }
-
-    // Assign the Blob URL to the audio element and download button
-    audioElement.src = trackUrl;
-    downloadBtn.href = trackUrl;
-    downloadBtn.download = `${title}.mp3`;
-
-    // Play the audio
-    try {
-      await audioElement.play();
-    } catch (playError) {
-      console.error("Autoplay failed:", playError);
-      showError("Autoplay failed. Please manually play the track.");
-    }
-
-    // Hide loading overlay
-    loadingOverlay.classList.add('hidden');
-    loadingOverlay.classList.remove('flex');
-    updateNotification(title, artist, cover);
 
   } catch (error) {
-    console.error("Playback Error:", error);
-    showError("Failed to load the track. Try online mode or skip to the next song.");
+    console.error("Error playing song:", error);
+    showError(`Failed to load "${title}". Skipping to the next song...`);
+
+    nextBtn.disabled = false;
+    previewBtn.disabled = false;
+    loadingOverlay.classList.add("hidden");
+    loadingOverlay.classList.remove("flex");
+
     playNextTrack();
   }
 }
