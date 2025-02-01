@@ -379,54 +379,60 @@ async function playSong(preview_url, title, artist, cover) {
   }
 
   try {
-    // Show loading message (optional)
-      loadingOverlay.classList.remove('hidden');
-      loadingOverlay.classList.add('flex');
+    // Show loading overlay
+    loadingOverlay.classList.remove('hidden');
+    loadingOverlay.classList.add('flex');
 
-    // Fetch the audio file as a Blob
+    // Update player UI
     audioPlayer.style.transform = 'translateY(0)';
-        // Update player UI
     playerTitle.textContent = title;
     playerArtist.textContent = artist;
     playerCover.src = cover;
     updateNotification(title, artist, cover);
-      // Fallback logic: Use the API to fetch the song
-      const turl = `${title} ${artist}`;
-      const response = await fetch(
-        "https://calm-art-75c5.kalu4134.workers.dev/?url=https://spot-steel.vercel.app/search-and-convert",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ query: turl }),
-        }
-      );
-      
-      const data = await response.json();
 
+    const turl = `${title} ${artist}`;
+    const response = await fetch(
+      "https://calm-art-75c5.kalu4134.workers.dev/?url=https://ytblob.vercel.app/search-and-convert",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: turl }),
+      }
+    );
 
+    if (!response.ok) {
+      throw new Error(`HTTP error! Status: ${response.status}`);
+    }
 
+    // Convert response to a Blob
+    const blob = await response.blob();
+    const trackUrl = URL.createObjectURL(blob);
 
-    // Create an object URL for the Blob
-    const trackUrl = data.audio.url;
-      
+    if (!audioElement) {
+      throw new Error("Audio player not found.");
+    }
 
-    // Assign the Blob URL to the audio element and the download button
+    // Assign the Blob URL to the audio element and download button
     audioElement.src = trackUrl;
     downloadBtn.href = trackUrl;
-    downloadBtn.download = `${title}.mp3`; // Optional: Set a default download filename
-
-
-    
+    downloadBtn.download = `${title}.mp3`;
 
     // Play the audio
-    await audioElement.play();
+    try {
+      await audioElement.play();
+    } catch (playError) {
+      console.error("Autoplay failed:", playError);
+      showError("Autoplay failed. Please manually play the track.");
+    }
+
+    // Hide loading overlay
     loadingOverlay.classList.add('hidden');
-      loadingOverlay.classList.remove('flex');
-      updateNotification(title, artist, cover);
-      
+    loadingOverlay.classList.remove('flex');
+    updateNotification(title, artist, cover);
+
   } catch (error) {
-    // Handle errors
-    showError("Failed to load the track. Go Back Try Online Mode Skipping to the next song...");
+    console.error("Playback Error:", error);
+    showError("Failed to load the track. Try online mode or skip to the next song.");
     playNextTrack();
   }
 }
