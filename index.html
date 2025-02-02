@@ -177,6 +177,11 @@
     </div>
 
 
+    <footer>
+    <p>Cache Size: <span id="cache-size">Calculating...</span></p>
+    <button id="clear-cache">Clear Cache</button>
+    </footer>
+
 
 
 <script>
@@ -436,6 +441,43 @@ window.addEventListener('beforeinstallprompt', (event) => {
         });
     });
 });
+
+    async function updateCacheSize() {
+    if (!('caches' in window)) return;
+
+    let totalSize = 0;
+    const cacheNames = await caches.keys();
+
+    for (const cacheName of cacheNames) {
+        const cache = await caches.open(cacheName);
+        const requests = await cache.keys();
+
+        for (const request of requests) {
+            const response = await cache.match(request);
+            if (response) {
+                const blob = await response.blob();
+                totalSize += blob.size;
+            }
+        }
+    }
+
+    document.getElementById('cache-size').textContent = (totalSize / 1024).toFixed(2) + " KB";
+}
+
+// Clear cache function
+async function clearCache() {
+    const cacheNames = await caches.keys();
+    for (const cacheName of cacheNames) {
+        await caches.delete(cacheName);
+    }
+    document.getElementById('cache-size').textContent = "0 KB";
+}
+
+// Attach event listener
+document.getElementById('clear-cache').addEventListener('click', clearCache);
+
+// Update cache size on load
+updateCacheSize();
     </script>
 </body>
 </html>
