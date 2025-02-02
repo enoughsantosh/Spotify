@@ -177,7 +177,7 @@
     </div>
 
 
-<footer class="fixed bottom-0 left-0 w-full bg-gray-900 text-white p-4 flex justify-between items-center">
+<footer class="relative bottom-0 left-0 w-full bg-gray-900 text-white p-4 flex justify-between items-center">
     <p class="text-sm">
         Cache Size: <span id="cache-size" class="font-semibold">Calculating...</span>
     </p>
@@ -466,7 +466,8 @@ window.addEventListener('beforeinstallprompt', (event) => {
         }
     }
 
-    document.getElementById('cache-size').textContent = (totalSize / 1024).toFixed(2) + " KB";
+    // Convert bytes to MB and update the UI
+    document.getElementById('cache-size').textContent = (totalSize / (1024 * 1024)).toFixed(2) + " MB";
 }
 
 // Clear cache function
@@ -475,7 +476,7 @@ async function clearCache() {
     for (const cacheName of cacheNames) {
         await caches.delete(cacheName);
     }
-    document.getElementById('cache-size').textContent = "0 KB";
+    document.getElementById('cache-size').textContent = "0 MB";
 }
 
 // Attach event listener
