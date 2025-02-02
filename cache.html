@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cached Data</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            text-align: center;
+        }
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        li {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            border: 1px solid #ddd;
+            margin: 5px 0;
+            background-color: #f9f9f9;
+            word-break: break-all;
+        }
+        button {
+            cursor: pointer;
+            padding: 5px 10px;
+            border: none;
+            background-color: red;
+            color: white;
+            border-radius: 3px;
+        }
+        #clearAll {
+            background-color: black;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h2>Cached Data</h2>
+    <h3 id="totalSize">Total Cache Size: Calculating...</h3>
+    <ul id="cacheList"></ul>
+    <button id="clearAll">Clear All Cache</button>
+
+    <script src="cache.js"></script>
+</body>
+</html>
