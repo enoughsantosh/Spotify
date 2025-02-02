@@ -14,7 +14,7 @@ async function loadCachedData() {
     cacheList.innerHTML = "";
     totalSizeDisplay.textContent = "Total Cache Size: Calculating...";
 
-    const cache = await caches.open("spookify-audio-v1");
+    const cache = await caches.open("spootify-audio-v1");
     const cachedRequests = await cache.keys();
     const metadataList = await getAllMetadata();
 
@@ -50,7 +50,7 @@ async function loadCachedData() {
 
 // Function to remove a cached song
 async function removeCachedSong(preview_url) {
-    const cache = await caches.open("spookify-audio-v1");
+    const cache = await caches.open("spootify-audio-v1");
     await cache.delete(preview_url);
     await removeMetadata(preview_url);
     loadCachedData();
