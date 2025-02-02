@@ -403,7 +403,7 @@ async function playSong(preview_url, title, artist, cover) {
       audioElement.src = URL.createObjectURL(await cachedResponse.blob());
       await audioElement.play();
       // Update download button
-        downloadBtn.href = URL.createObjectURL(await cachedResponse.blob());
+        
         
      
       
