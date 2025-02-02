@@ -5,9 +5,11 @@ const INDEX_URL = '/index.html';
 // Install event - Caches essential files
 self.addEventListener('install', (event) => {
     event.waitUntil(
-        caches.open(CACHE_NAME).then((cache) =>
-            cache.addAll([INDEX_URL, OFFLINE_URL])
-        )
+        caches.open(CACHE_NAME)
+            .then((cache) => {
+                return cache.addAll([INDEX_URL, OFFLINE_URL])
+                    .catch((error) => console.error("Caching failed:", error));
+            })
     );
     self.skipWaiting(); // Activate the service worker immediately
 });
@@ -51,12 +53,24 @@ async function handleAudioRequest(request) {
 
 // Handle general requests with an offline fallback
 async function handleGeneralRequest(request) {
+    const cache = await caches.open(CACHE_NAME);
+    const cachedResponse = await cache.match(request);
+
+    if (cachedResponse) {
+        return cachedResponse;
+    }
+
     try {
         return await fetch(request);
     } catch (error) {
-        const cache = await caches.open(CACHE_NAME);
-        const cachedResponse = await cache.match(request);
-        return cachedResponse || cache.match(OFFLINE_URL);
+        if (request.mode === 'navigate') {
+            // Serve offline page if navigating
+            return cache.match(OFFLINE_URL);
+        }
+        return new Response("Offline content unavailable.", {
+            status: 503,
+            statusText: "Service Unavailable"
+        });
     }
 }
 
