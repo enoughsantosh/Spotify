@@ -377,11 +377,8 @@ async function playSong(preview_url, title, artist, cover) {
     showError("Preview not available for this track. Trying fallback...");
   }
 
-  
-
   try {
-    if (preview_url) {
-          // Disable buttons to prevent multiple presses
+    // Disable buttons to prevent multiple presses
     nextBtn.disabled = true;
     previewBtn.disabled = true;
 
@@ -394,46 +391,71 @@ async function playSong(preview_url, title, artist, cover) {
     playerTitle.textContent = title;
     playerArtist.textContent = artist;
     playerCover.src = cover;
-              // Update UI with track details
     updateNotification(title, artist, cover);
-      // Fallback logic: Use the API to fetch the song
-      const turl = `${title} ${artist}`;
-      const response = await fetch(
-        "https://calm-art-75c5.kalu4134.workers.dev/?url=https://spot-steel.vercel.app/search-and-convert",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ query: turl }),
-        }
-      );
 
-      const data = await response.json();
+    // Open Cache Storage
+    const cache = await caches.open("spookify-audio-v1");
 
-      // Validate response
-      if (data.audio && data.audio.url) {
-        audioSrc = data.audio.url;
+    // Check if the song is already cached
+    const cachedResponse = await cache.match(preview_url);
+    if (cachedResponse) {
+      console.log("Playing from cache:", preview_url);
+      audioElement.src = URL.createObjectURL(await cachedResponse.blob());
+      await audioElement.play();
+      
+      // Hide loading overlay and enable buttons
+      loadingOverlay.classList.add("hidden");
+      loadingOverlay.classList.remove("flex");
+      nextBtn.disabled = false;
+      previewBtn.disabled = false;
+      return;
+    }
+
+    // Fetch the song if not in cache
+    console.log("Fetching new audio...");
+    const turl = `${title} ${artist}`;
+    const response = await fetch(
+      "https://calm-art-75c5.kalu4134.workers.dev/?url=https://spot-steel.vercel.app/search-and-convert",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: turl }),
+      }
+    );
+
+    const data = await response.json();
+
+    if (data.audio && data.audio.url) {
+      audioSrc = data.audio.url;
+
+      // Fetch actual audio file
+      const audioResponse = await fetch(audioSrc);
+      if (audioResponse.ok) {
+        // Cache the audio file
+        cache.put(preview_url, audioResponse.clone());
+
+        // Store metadata in IndexedDB
+        await saveMetadata(preview_url, { title, artist, cover, audioSrc });
+
+        // Play the audio
+        audioElement.src = URL.createObjectURL(await audioResponse.blob());
+        await audioElement.play();
 
         // Update download button
         downloadBtn.href = audioSrc;
         downloadBtn.download = data.audio.filename;
-            // Play the selected audio source
-    audioElement.src = audioSrc;
-    await audioElement.play();
-            // Hide loading overlay
-    loadingOverlay.classList.add("hidden");
-    loadingOverlay.classList.remove("flex");
-        nextBtn.disabled = false;
-    previewBtn.disabled = false;
-
-        // Update UI with track details
-        updateNotification(data.video.title, data.video.channel, data.video.thumbnail);
       } else {
-        throw new Error("Fallback response does not contain valid audio data.");
+        throw new Error("Failed to fetch audio file.");
       }
+    } else {
+      throw new Error("Fallback response does not contain valid audio data.");
     }
 
-
-
+    // Hide loading overlay and enable buttons
+    loadingOverlay.classList.add("hidden");
+    loadingOverlay.classList.remove("flex");
+    nextBtn.disabled = false;
+    previewBtn.disabled = false;
   } catch (error) {
     console.error("Error playing song:", error);
     showError(`Failed to load "${title}". Skipping to the next song...`);
@@ -445,7 +467,7 @@ async function playSong(preview_url, title, artist, cover) {
 
     playNextTrack();
   }
-}
+  }
 
     function fetchPlaylistInfo(playlistId) {
       showLoading();
