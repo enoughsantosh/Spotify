@@ -402,6 +402,10 @@ async function playSong(preview_url, title, artist, cover) {
       console.log("Playing from cache:", preview_url);
       audioElement.src = URL.createObjectURL(await cachedResponse.blob());
       await audioElement.play();
+      // Update download button
+        downloadBtn.href = URL.createObjectURL(await cachedResponse.blob());
+        
+     
       
       // Hide loading overlay and enable buttons
       loadingOverlay.classList.add("hidden");
@@ -428,6 +432,15 @@ async function playSong(preview_url, title, artist, cover) {
     if (data.audio && data.audio.url) {
       audioSrc = data.audio.url;
 
+      // Play the audio
+        audioElement.src = audioSrc;
+        await audioElement.play();
+
+        // Update download button
+        downloadBtn.href = audioSrc;
+        downloadBtn.download = data.audio.filename;
+     
+
       // Fetch actual audio file
       const audioResponse = await fetch(audioSrc);
       if (audioResponse.ok) {
@@ -437,14 +450,7 @@ async function playSong(preview_url, title, artist, cover) {
         // Store metadata in IndexedDB
         
 
-        // Play the audio
-        audioElement.src = URL.createObjectURL(await audioResponse.blob());
-        await audioElement.play();
-
-        // Update download button
-        downloadBtn.href = audioSrc;
-        downloadBtn.download = data.audio.filename;
-      } else {
+         } else {
         throw new Error("Failed to fetch audio file.");
       }
     } else {
