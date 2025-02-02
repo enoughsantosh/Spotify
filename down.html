@@ -394,7 +394,7 @@ async function playSong(preview_url, title, artist, cover) {
     updateNotification(title, artist, cover);
 
     // Open Cache Storage
-    const cache = await caches.open("spookify-audio-v1");
+    const cache = await caches.open("spootify-audio-v1");
 
     // Check if the song is already cached
     const cachedResponse = await cache.match(preview_url);
